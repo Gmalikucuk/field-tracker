@@ -469,12 +469,18 @@ function showEndModal() {
 }
 function closeModal() {
   document.getElementById('modal-end').classList.remove('show');
+  resetEndModal();
 }
 
 async function endSession() {
   closeModal();
-  await syncNow();
-  // Reset
+  const ok = await syncNow();
+  if(!ok) {
+    // Sync failed — stay in session, show retry modal
+    showSyncFailModal();
+    return;
+  }
+  // Only reset after confirmed success
   session = null; entries = [];
   save();
   document.getElementById('screen-tracker').classList.remove('active');
@@ -485,10 +491,7 @@ async function endSession() {
 
 // ── SYNC ──────────────────────────────────────────────────────────────────
 async function syncNow() {
-  if(!session || entries.length === 0) { toast('Nothing to sync'); return; }
-  if(SCRIPT_URL === 'https://script.google.com/macros/s/AKfycbz72wxCp12yzTbzkJzhpYVAwtaTziUKwoyiTIGerg0OQ15kX5JAm5oU7A0bLu7CrENiaQ/exec') {
-    toast('⚠ Script URL not set yet'); return;
-  }
+  if(!session || entries.length === 0) { toast('Nothing to sync'); return false; }
 
   setSyncState('syncing');
   const last = entries[entries.length-1];
@@ -511,27 +514,46 @@ async function syncNow() {
     }
   };
 
+  // Apps Script requires GET with encoded data parameter (POST is blocked by CORS from browser)
   try {
-    const res = await fetch(SCRIPT_URL, {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    });
+    const url = SCRIPT_URL + '?data=' + encodeURIComponent(JSON.stringify(payload));
+    const res = await fetch(url, { method: 'GET' });
     const json = await res.json();
     if(json.ok) {
       setSyncState('synced');
       toast('Synced to Sheets ✓');
       setTimeout(()=>setSyncState('idle'), 3000);
+      return true;
     } else {
       throw new Error(json.error || 'Unknown error');
     }
   } catch(err) {
     setSyncState('error');
-    toast('Sync failed: ' + err.message);
+    toast('Sync failed — session kept open');
     setTimeout(()=>setSyncState('idle'), 4000);
+    return false;
   }
 }
 
-function setSyncState(state) {
+function showSyncFailModal() {
+  // Re-show the end modal but with a sync-failed message
+  document.getElementById('modal-end').classList.add('show');
+  document.querySelector('.modal-title').textContent = 'Sync Failed';
+  document.querySelector('.modal-sub').textContent =
+    'Could not reach Google Sheets. Check your connection and try again. Your session data is safe on this device.';
+  document.querySelector('.btn-modal-primary').textContent = 'Retry Sync';
+  document.querySelector('.btn-modal-primary').onclick = endSession;
+  document.querySelector('.btn-modal-secondary').textContent = 'Keep Working';
+}
+
+function resetEndModal() {
+  document.querySelector('.modal-title').textContent = 'End Session?';
+  document.querySelector('.modal-sub').textContent =
+    'This will save the session to Google Sheets and reset for a new session.';
+  document.querySelector('.btn-modal-primary').textContent = 'Save & End Session';
+  document.querySelector('.btn-modal-primary').onclick = endSession;
+  document.querySelector('.btn-modal-secondary').textContent = 'Keep Working';
+}
   syncState = state;
   const btn = document.getElementById('btn-sync');
   btn.className = 'btn-sync';
