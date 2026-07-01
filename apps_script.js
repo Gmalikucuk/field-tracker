@@ -130,82 +130,128 @@ function saveSession(data) {
     sheet.setTabColor('#F59E0B');
 
     const s = data.summary;
-    const LOG_START = 6; // 4 stat rows + 1 blank row + header at row 6
+    const LOG_START = 6; // rows 1-4 header, row 5 blank, row 6 log header
 
-    // ── SUMMARY STATS (rows 1-4, cols A-F) ──────────────────────────────
-    const stats = [
-      ['Date', s.date||'', 'Direction', s.direction||'', (s.segment||''), ''],
-      ['Start ST', s.startStation||'', 'End ST', s.endStation||'', (s.dirLabel||''), ''],
-      ['Start Time', s.startTime||'—', 'End Time', s.endTime||'—', '', ''],
-      ['Length (m)', s.totalLength||'', 'Avg Width (m)', s.avgWidth||'', 'Area (m²)', s.totalArea||''],
+    // ── HEADER BLOCK (rows 1-4, cols A-F) ───────────────────────────────
+    // Layout: col A = label (grey), col B = value (bold), col C = label, col D = value, col E = label, col F = value
+    const headerRows = [
+      ['Date',       s.date||'',            'Direction', s.direction||'',   'Segment',    s.segment||''],
+      ['Start ST',   String(s.startStation||''), 'End ST',    String(s.endStation||''),   'LKI',        s.dirLabel||''],
+      ['Start Time', s.startTime||'',       'End Time',  s.endTime||'',     '',           ''],
+      ['Length (m)', String(s.totalLength||''), 'Avg W (m)', String(s.avgWidth||''),  'Area (m²)',  String(s.totalArea||'')],
     ];
+    const labelColor = '#999999';
+    const valColor   = '#111111';
+    const labelSize  = 9;
+    const valSize    = 11;
 
-    stats.forEach((row, i) => {
+    headerRows.forEach((row, i) => {
       const r = i + 1;
-      sheet.getRange(r,1).setValue(row[0]).setFontWeight('bold').setFontColor('#888888').setFontSize(10);
-      sheet.getRange(r,2).setValue(row[1]).setFontWeight('bold').setFontSize(11);
-      sheet.getRange(r,3).setValue(row[2]).setFontWeight('bold').setFontColor('#888888').setFontSize(10);
-      sheet.getRange(r,4).setValue(row[3]).setFontWeight('bold').setFontSize(11);
-      if (row[4]) sheet.getRange(r,5).setValue(row[4]).setFontColor('#888888').setFontSize(10);
-      if (row[5]) sheet.getRange(r,6).setValue(row[5]).setFontWeight('bold').setFontSize(11);
+      // Col A: label
+      sheet.getRange(r,1).setValue(row[0])
+        .setFontWeight('normal').setFontColor(labelColor).setFontSize(labelSize);
+      // Col B: value
+      sheet.getRange(r,2).setValue(row[1])
+        .setFontWeight('bold').setFontColor(valColor).setFontSize(valSize);
+      // Col C: label
+      sheet.getRange(r,3).setValue(row[2])
+        .setFontWeight('normal').setFontColor(labelColor).setFontSize(labelSize);
+      // Col D: value
+      sheet.getRange(r,4).setValue(row[3])
+        .setFontWeight('bold').setFontColor(valColor).setFontSize(valSize);
+      // Col E: label (if present)
+      sheet.getRange(r,5).setValue(row[4]||'')
+        .setFontWeight('normal').setFontColor(labelColor).setFontSize(labelSize);
+      // Col F: value (if present)
+      sheet.getRange(r,6).setValue(row[5]||'')
+        .setFontWeight('bold').setFontColor(valColor).setFontSize(valSize);
     });
 
-    // ── MACHINE-READABLE SUMMARY (col H, rows 1-11) ─────────────────────
+    // Status indicator row 3 col F: open = green dot, closed = grey
+    const statusLabel = data.closed ? '● Closed' : '● Open';
+    const statusColor = data.closed ? '#999999' : '#22C55E';
+    sheet.getRange(3,5).setValue('Status').setFontColor(labelColor).setFontSize(labelSize);
+    sheet.getRange(3,6).setValue(statusLabel).setFontColor(statusColor).setFontWeight('bold').setFontSize(valSize);
+
+    // Light grey background on header rows for visual separation
+    sheet.getRange(1, 1, 4, 6).setBackground('#F8F8F8');
+
+    // ── MACHINE-READABLE SUMMARY (col H-I, rows 1-13) ───────────────────
     const summaryBlock = [
-      ['Date', s.date], ['Direction', s.direction], ['Activity', s.activity||'Milling'],
-      ['Segment', s.segment||''], ['Start Station', s.startStation], ['End Station', s.endStation],
+      ['Date', s.date||''], ['Direction', s.direction||''], ['Activity', s.activity||'Milling'],
+      ['Segment', s.segment||''], ['Start Station', s.startStation||''], ['End Station', s.endStation||''],
       ['Start Time', s.startTime||''], ['End Time', s.endTime||''],
-      ['Total Length (m)', s.totalLength], ['Avg Width (m)', s.avgWidth],
-      ['Total Area (m2)', s.totalArea], ['Entries', data.entries.length],
+      ['Total Length (m)', s.totalLength||''], ['Avg Width (m)', s.avgWidth||''],
+      ['Total Area (m2)', s.totalArea||''], ['Entries', data.entries.length],
       ['Status', data.closed ? 'closed' : 'open'],
     ];
     sheet.getRange(1, 8, summaryBlock.length, 2).setValues(summaryBlock);
-    sheet.getRange(1, 8, summaryBlock.length, 1).setFontWeight('bold').setFontColor('#AAAAAA').setFontSize(9);
-    sheet.getRange(1, 9, summaryBlock.length, 1).setFontSize(9);
+    sheet.getRange(1, 8, summaryBlock.length, 1)
+      .setFontWeight('bold').setFontColor('#BBBBBB').setFontSize(9);
+    sheet.getRange(1, 9, summaryBlock.length, 1)
+      .setFontColor('#666666').setFontSize(9);
+    // Light border to separate from data
+    sheet.getRange(1, 7, summaryBlock.length, 1).setBackground('#EEEEEE');
 
-    // ── ENTRY LOG HEADER (row 5) ─────────────────────────────────────────
-    const headers = ['Station','Width (m)','Length (m)','Seg Area (m²)','Cum Area (m²)','Time'];
+    // ── ENTRY LOG HEADER (row 6) ─────────────────────────────────────────
+    const headers = ['Station', 'Width (m)', 'Length (m)', 'Seg Area (m²)', 'Cum Area (m²)', 'Time'];
     const headerRange = sheet.getRange(LOG_START, 1, 1, headers.length);
     headerRange.setValues([headers]);
-    headerRange.setFontWeight('bold').setBackground('#F59E0B').setFontColor('#111111');
+    headerRange.setFontWeight('bold').setBackground('#F59E0B').setFontColor('#111111').setFontSize(10);
 
     // ── ENTRY ROWS ────────────────────────────────────────────────────────
     if (data.entries.length > 0) {
       const rows = data.entries.map(entry => {
-        // Shorten timestamp: ISO → "27Jun 07:00"
-        let ts = entry.timestamp || '';
+        // Format timestamp as plain text string "01Jul 14:32"
+        let ts = '';
         try {
-          if (ts) {
-            const d = new Date(ts);
+          if (entry.timestamp) {
+            const d = new Date(entry.timestamp);
             const mo = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-            const dd = String(d.getDate()).padStart(2,'0');
-            const hh = String(d.getHours()).padStart(2,'0');
-            const mm = String(d.getMinutes()).padStart(2,'0');
-            ts = dd + mo[d.getMonth()] + ' ' + hh + ':' + mm;
+            ts = String(d.getDate()).padStart(2,'0') + mo[d.getMonth()] + ' '
+               + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
           }
-        } catch(e) {}
-        return [entry.station, entry.width, entry.length, entry.segArea, entry.cumArea, ts];
+        } catch(e) { ts = ''; }
+        return [
+          Number(entry.station),
+          Number(entry.width),
+          Number(entry.length),
+          Number(entry.segArea),
+          Number(entry.cumArea),
+          ts  // plain string — must stay as string, not a number
+        ];
       });
+
       const dataRange = sheet.getRange(LOG_START+1, 1, rows.length, 6);
       dataRange.setValues(rows);
-      sheet.getRange(LOG_START+1, 1, rows.length, 1).setNumberFormat('0.00');
-      sheet.getRange(LOG_START+1, 2, rows.length, 5).setNumberFormat('0.00');
-      sheet.getRange(LOG_START+1, 6, rows.length, 1).setNumberFormat('@');
+
+      // Number formats — explicit per column to prevent Sheets auto-interpreting time strings
+      sheet.getRange(LOG_START+1, 1, rows.length, 1).setNumberFormat('0.00');   // Station
+      sheet.getRange(LOG_START+1, 2, rows.length, 1).setNumberFormat('0.00');   // Width
+      sheet.getRange(LOG_START+1, 3, rows.length, 1).setNumberFormat('0.00');   // Length
+      sheet.getRange(LOG_START+1, 4, rows.length, 1).setNumberFormat('0.00');   // Seg Area
+      sheet.getRange(LOG_START+1, 5, rows.length, 1).setNumberFormat('0.00');   // Cum Area
+      sheet.getRange(LOG_START+1, 6, rows.length, 1).setNumberFormat('@STRING@'); // Time — force plain text
+
+      // Alternating row shading
       for (let i = 0; i < rows.length; i++) {
-        if (i % 2 === 0) sheet.getRange(LOG_START+1+i, 1, 1, 6).setBackground('#FAFAFA');
+        sheet.getRange(LOG_START+1+i, 1, 1, 6)
+          .setBackground(i % 2 === 0 ? '#FFFFFF' : '#F5F5F5');
       }
+      // Bold final cumulative area
       sheet.getRange(LOG_START+rows.length, 5).setFontWeight('bold');
     }
 
     // ── COLUMN WIDTHS ─────────────────────────────────────────────────────
-    sheet.setColumnWidth(1, 80);   // Station
-    sheet.setColumnWidth(2, 80);   // Width
-    sheet.setColumnWidth(3, 80);   // Length
-    sheet.setColumnWidth(4, 100);  // Seg Area
-    sheet.setColumnWidth(5, 100);  // Cum Area
-    sheet.setColumnWidth(6, 100);  // Time (shortened)
-    sheet.autoResizeColumns(8, 2); // Summary labels auto-size
-    sheet.setFrozenRows(LOG_START);
+    sheet.setColumnWidth(1, 85);    // Station
+    sheet.setColumnWidth(2, 80);    // Width
+    sheet.setColumnWidth(3, 80);    // Length
+    sheet.setColumnWidth(4, 105);   // Seg Area
+    sheet.setColumnWidth(5, 105);   // Cum Area
+    sheet.setColumnWidth(6, 95);    // Time
+    sheet.setColumnWidth(7, 20);    // Separator (narrow grey column)
+    sheet.autoResizeColumns(8, 2);  // Summary block auto-size
+    sheet.setFrozenRows(LOG_START); // Freeze through log header
 
     return { ok: true, tabName, rows: data.entries.length };
   } catch(err) {
