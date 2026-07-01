@@ -560,7 +560,7 @@ function resumeTracker() {
   document.getElementById('t-sub').textContent = sess.date + ' · ' + (sess.activity||'Milling');
   document.getElementById('readonly-banner').style.display = isReadOnly ? 'block' : 'none';
   document.getElementById('entry-area').style.display = isReadOnly ? 'none' : 'block';
-  document.getElementById('endbtn').style.display = isReadOnly ? 'none' : 'flex';
+  document.getElementById('endbtn').style.display = isReadOnly ? 'none' : 'block';
   document.getElementById('d-s').textContent = sess.startSt||'—';
   refreshDash();
   renderLog();
