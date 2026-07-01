@@ -405,8 +405,8 @@ async function sync() {
     throw new Error(json.error || 'Script error');
   } catch(e) {
     btn.textContent = '✕'; btn.className = 'synbtn err';
-    showToast('Sync failed — data safe on device');
-    setTimeout(() => { btn.textContent = '☁'; btn.className = 'synbtn'; }, 4000);
+    showToast('Sync failed: ' + (e.message || e.toString()).slice(0,60));
+    setTimeout(() => { btn.textContent = '☁'; btn.className = 'synbtn'; }, 5000);
     return false;
   }
 }
