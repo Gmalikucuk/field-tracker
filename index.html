@@ -233,7 +233,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:system-
 
 <script>
 // ── CONFIG ────────────────────────────────────────────────────────────────
-const SCRIPT_URL = 'PASTE_YOUR_SCRIPT_URL_HERE';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz72wxCp12yzTbzkJzhpYVAwtaTziUKwoyiTIGerg0OQ15kX5JAm5oU7A0bLu7CrENiaQ/exec';
 
 // ── STATE ─────────────────────────────────────────────────────────────────
 let session = null; // {project, segment, direction, startStation, date, tabName}
@@ -486,7 +486,7 @@ async function endSession() {
 // ── SYNC ──────────────────────────────────────────────────────────────────
 async function syncNow() {
   if(!session || entries.length === 0) { toast('Nothing to sync'); return; }
-  if(SCRIPT_URL === 'PASTE_YOUR_SCRIPT_URL_HERE') {
+  if(SCRIPT_URL === 'https://script.google.com/macros/s/AKfycbz72wxCp12yzTbzkJzhpYVAwtaTziUKwoyiTIGerg0OQ15kX5JAm5oU7A0bLu7CrENiaQ/exec') {
     toast('⚠ Script URL not set yet'); return;
   }
 
