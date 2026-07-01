@@ -579,7 +579,7 @@ document.getElementById('s-date').value =
   today.getDate() + ' ' + months[today.getMonth()] + ' ' + String(today.getFullYear()).slice(2);
 
 load();
-if(session && entries) {
+if(session && session.startStation && entries && entries.length > 0) {
   // Resume in-progress session
   showTracker();
 }
