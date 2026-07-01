@@ -88,7 +88,7 @@ function readSession(tabName) {
     if (!sheet) return { ok: false, error: 'Tab not found: ' + tabName };
 
     const lastRow = sheet.getLastRow();
-    const LOG_START = 5; // matches saveSession layout
+    const LOG_START = 6; // matches saveSession layout
     if (lastRow < LOG_START + 1) return { ok: true, entries: [], tabName };
 
     const data = sheet.getRange(LOG_START + 1, 1, lastRow - LOG_START, 6).getValues();
@@ -130,16 +130,15 @@ function saveSession(data) {
     sheet.setTabColor('#F59E0B');
 
     const s = data.summary;
-    const LOG_START = 5; // compact: stats rows 1-3, blank row 4, log from row 5
+    const LOG_START = 6; // 4 stat rows + 1 blank row + header at row 6
 
-    // ── SUMMARY STATS (rows 1-3, cols A-E) ──────────────────────────────
+    // ── SUMMARY STATS (rows 1-4, cols A-F) ──────────────────────────────
     const stats = [
-      ['Date', s.date||'', 'Direction', s.direction||'', (s.segment||'')],
-      ['Start ST', s.startStation||'', 'End ST', s.endStation||'', (s.dirLabel||'')],
-      ['Length (m)', s.totalLength||'', 'Avg Width (m)', s.avgWidth||'', 'Area (m²)'],
+      ['Date', s.date||'', 'Direction', s.direction||'', (s.segment||''), ''],
+      ['Start ST', s.startStation||'', 'End ST', s.endStation||'', (s.dirLabel||''), ''],
+      ['Start Time', s.startTime||'—', 'End Time', s.endTime||'—', '', ''],
+      ['Length (m)', s.totalLength||'', 'Avg Width (m)', s.avgWidth||'', 'Area (m²)', s.totalArea||''],
     ];
-    // Row 3 col E gets the area value
-    stats[2].push(s.totalArea||'');
 
     stats.forEach((row, i) => {
       const r = i + 1;
@@ -147,14 +146,15 @@ function saveSession(data) {
       sheet.getRange(r,2).setValue(row[1]).setFontWeight('bold').setFontSize(11);
       sheet.getRange(r,3).setValue(row[2]).setFontWeight('bold').setFontColor('#888888').setFontSize(10);
       sheet.getRange(r,4).setValue(row[3]).setFontWeight('bold').setFontSize(11);
-      if (row[4] !== undefined) sheet.getRange(r,5).setValue(row[4]).setFontColor('#888888').setFontSize(10);
-      if (row[5] !== undefined) sheet.getRange(r,6).setValue(row[5]).setFontWeight('bold').setFontSize(11);
+      if (row[4]) sheet.getRange(r,5).setValue(row[4]).setFontColor('#888888').setFontSize(10);
+      if (row[5]) sheet.getRange(r,6).setValue(row[5]).setFontWeight('bold').setFontSize(11);
     });
 
     // ── MACHINE-READABLE SUMMARY (col H, rows 1-11) ─────────────────────
     const summaryBlock = [
       ['Date', s.date], ['Direction', s.direction], ['Activity', s.activity||'Milling'],
       ['Segment', s.segment||''], ['Start Station', s.startStation], ['End Station', s.endStation],
+      ['Start Time', s.startTime||''], ['End Time', s.endTime||''],
       ['Total Length (m)', s.totalLength], ['Avg Width (m)', s.avgWidth],
       ['Total Area (m2)', s.totalArea], ['Entries', data.entries.length],
       ['Status', data.closed ? 'closed' : 'open'],
