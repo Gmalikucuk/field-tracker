@@ -365,50 +365,81 @@ async function endSession() {
   showToast('Session saved ✓');
 }
 
-// ── SYNC ──────────────────────────────────────────────────────────────────
-async function sync() {
-  if (!sess || rows.length === 0) { showToast('Nothing to sync'); return false; }
-  const btn = document.getElementById('synbtn');
-  btn.innerHTML = '<span class="spinning">↻</span>';
-  btn.className = 'synbtn';
+// ── SYNC (JSONP — works in Safari across origins) ─────────────────────────
+function sync() {
+  return new Promise((resolve) => {
+    if (!sess || rows.length === 0) { showToast('Nothing to sync'); resolve(false); return; }
+    const btn = document.getElementById('synbtn');
+    btn.innerHTML = '<span class="spinning">↻</span>';
+    btn.className = 'synbtn';
 
-  const last = rows[rows.length-1];
-  const totLen = rows.reduce((s,r)=>s+r.len,0);
-  const avgW = totLen > 0 ? last.cum/totLen : 0;
+    const last = rows[rows.length-1];
+    const totLen = rows.reduce((s,r)=>s+r.len,0);
+    const avgW = totLen > 0 ? last.cum/totLen : 0;
 
-  const payload = {
-    action: 'save_session',
-    tabName: sess.tab,
-    entries: rows.map(r => ({
-      station: r.station, width: r.width,
-      length: r.len, segArea: r.seg, cumArea: r.cum,
-      timestamp: r.ts
-    })),
-    summary: {
-      date: sess.date, direction: sess.dir, activity: 'Milling',
-      startStation: sess.startSt, endStation: last.station,
-      totalLength: totLen.toFixed(1), avgWidth: avgW.toFixed(2),
-      totalArea: last.cum.toFixed(2)
+    const payload = {
+      action: 'save_session',
+      tabName: sess.tab,
+      entries: rows.map(r => ({
+        station: r.station, width: r.width,
+        length: r.len, segArea: r.seg, cumArea: r.cum,
+        timestamp: r.ts
+      })),
+      summary: {
+        date: sess.date, direction: sess.dir, activity: 'Milling',
+        startStation: sess.startSt, endStation: last.station,
+        totalLength: totLen.toFixed(1), avgWidth: avgW.toFixed(2),
+        totalArea: last.cum.toFixed(2)
+      }
+    };
+
+    // JSONP: inject a <script> tag — Safari allows this cross-origin
+    const cbName = 'ft_cb_' + Date.now();
+    const timeout = setTimeout(() => {
+      cleanup();
+      btn.textContent = '✕'; btn.className = 'synbtn err';
+      showToast('Sync timed out — check signal');
+      setTimeout(() => { btn.textContent = '☁'; btn.className = 'synbtn'; }, 4000);
+      resolve(false);
+    }, 15000);
+
+    window[cbName] = function(result) {
+      cleanup();
+      if (result && result.ok) {
+        btn.textContent = '✓'; btn.className = 'synbtn ok';
+        showToast('Synced to Sheets ✓');
+        setTimeout(() => { btn.textContent = '☁'; btn.className = 'synbtn'; }, 3000);
+        resolve(true);
+      } else {
+        btn.textContent = '✕'; btn.className = 'synbtn err';
+        showToast('Sync failed: ' + (result && result.error ? result.error : 'unknown'));
+        setTimeout(() => { btn.textContent = '☁'; btn.className = 'synbtn'; }, 5000);
+        resolve(false);
+      }
+    };
+
+    function cleanup() {
+      clearTimeout(timeout);
+      delete window[cbName];
+      const el = document.getElementById('jsonp-script');
+      if (el) el.remove();
     }
-  };
 
-  try {
-    const url = SCRIPT_URL + '?data=' + encodeURIComponent(JSON.stringify(payload));
-    const res = await fetch(url);
-    const json = await res.json();
-    if (json.ok) {
-      btn.textContent = '✓'; btn.className = 'synbtn ok';
-      showToast('Synced to Sheets ✓');
-      setTimeout(() => { btn.textContent = '☁'; btn.className = 'synbtn'; }, 3000);
-      return true;
-    }
-    throw new Error(json.error || 'Script error');
-  } catch(e) {
-    btn.textContent = '✕'; btn.className = 'synbtn err';
-    showToast('Sync failed: ' + (e.message || e.toString()).slice(0,60));
-    setTimeout(() => { btn.textContent = '☁'; btn.className = 'synbtn'; }, 5000);
-    return false;
-  }
+    const url = SCRIPT_URL
+      + '?callback=' + cbName
+      + '&data=' + encodeURIComponent(JSON.stringify(payload));
+    const script = document.createElement('script');
+    script.id = 'jsonp-script';
+    script.src = url;
+    script.onerror = function() {
+      cleanup();
+      btn.textContent = '✕'; btn.className = 'synbtn err';
+      showToast('Sync failed — no connection');
+      setTimeout(() => { btn.textContent = '☁'; btn.className = 'synbtn'; }, 4000);
+      resolve(false);
+    };
+    document.head.appendChild(script);
+  });
 }
 
 // ── TOAST ─────────────────────────────────────────────────────────────────
