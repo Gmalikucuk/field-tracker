@@ -171,7 +171,7 @@ function buildFallbackDistribution(trucks, segments, totalArea, totalTonnage) {
     var truckArea = tonnage / rate;
     var targetCumArea = cumAreaUsed + truckArea;
 
-    var wSum = 0, wCount = 0, truckLen = 0;
+    var wSum = 0, wCount = 0, truckLen = 0, actualAreaSum = 0;
     var toStation = prevStation;
 
     for (var j = 0; j < segs.length; j++) {
@@ -182,6 +182,7 @@ function buildFallbackDistribution(trucks, segments, totalArea, totalTonnage) {
       var overlapEnd = Math.min(s.areaEnd, targetCumArea);
       var overlapArea = overlapEnd - overlapStart;
       if (overlapArea <= 0) continue;
+      actualAreaSum += overlapArea;  // accumulate actual area from segments
       if (s.area > 0) {
         var frac = overlapArea / s.area;
         truckLen += s.length * frac;
@@ -200,8 +201,9 @@ function buildFallbackDistribution(trucks, segments, totalArea, totalTonnage) {
 
     truckLen = Math.round(truckLen * 100) / 100;
     cumLength = Math.round((cumLength + truckLen) * 100) / 100;
-    var avgWidth = wCount > 0 ? Math.round(wSum / wCount * 100) / 100 : 9.3;
-    var actualArea = Math.round(truckLen * avgWidth * 100) / 100;
+    // Use actual overlap area (not length x avg width) for accurate rate calculation
+    var actualArea = Math.round(actualAreaSum * 100) / 100;
+    var avgWidth = truckLen > 0 ? Math.round(actualArea / truckLen * 100) / 100 : 0;
     var rateKgM2 = actualArea > 0 ? Math.round(tonnage * 1000 / actualArea * 100) / 100 : 0;
     var ratePct = Math.round(rateKgM2 / TARGET_RATE_KG_M2 * 10000) / 100;
 
