@@ -159,23 +159,15 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:system-
   <div class="scroll" id="pave-scroll">
 
     <!-- ── SECTION 1: RATE ESTIMATOR ── -->
-    <div class="section-header" onclick="toggleSection('est')">
+    <div class="section-header" onclick="toggleSection('est')" style="background:var(--bg)">
       <span class="section-header-title">📐 Rate Estimator</span>
-      <span class="section-header-right" id="est-toggle-label">▾ open</span>
+      <span class="section-header-right" id="est-toggle-label">
+        <span id="est-summary" style="color:var(--muted);font-size:12px;margin-right:8px">—</span>
+        ▸ tap to expand
+      </span>
     </div>
-    <div class="section-body" id="est-body">
+    <div class="section-body collapsed" id="est-body">
       <div class="estimator">
-        <div class="est-gauge">
-          <div class="gauge-circle" id="gauge-circle">
-            <div class="gauge-pct" id="gauge-pct">—</div>
-            <div class="gauge-lbl">% rate</div>
-          </div>
-          <div class="est-meta">
-            <div class="est-meta-row"><span class="est-meta-label">Total tonnage</span><span class="est-meta-val" id="em-tonnage">0.00 t</span></div>
-            <div class="est-meta-row"><span class="est-meta-label">Est. area</span><span class="est-meta-val" id="em-area">— m²</span></div>
-            <div class="est-meta-row"><span class="est-meta-label">Last estimate</span><span class="est-meta-val" id="em-time">—</span></div>
-          </div>
-        </div>
         <div class="est-inputs">
           <div class="ef">
             <span class="el">To Station</span>
@@ -338,12 +330,17 @@ function restore() {
 }
 
 // ── SECTION TOGGLE ────────────────────────────────────────────────────────
-const sectionState = { est: true, width: true, truck: true };
+const sectionState = { est: false, width: true, truck: true };
 function toggleSection(id) {
   sectionState[id] = !sectionState[id];
   document.getElementById(id+'-body').classList.toggle('collapsed', !sectionState[id]);
-  document.getElementById(id+'-toggle-label').textContent =
-    sectionState[id] ? '▾ open' : '▸ tap to expand';
+  const lbl = document.getElementById(id+'-toggle-label');
+  if (id === 'est') {
+    const summary = document.getElementById('est-summary');
+    lbl.innerHTML = (summary ? summary.outerHTML : '') + (sectionState[id] ? ' ▾ collapse' : ' ▸ tap to expand');
+  } else {
+    lbl.textContent = sectionState[id] ? '▾ open' : '▸ tap to expand';
+  }
 }
 
 // ── MILLED WIDTH LOOKUP ────────────────────────────────────────────────────
@@ -588,10 +585,22 @@ function calcRate() {
   rateEstimates.push({station:estSt, width:estW, area, rate:pct, ts:ts.toISOString()});
   persist();
 
-  // Update gauge
-  renderRateGauge(pct, totalTonnage, area, ts);
-  document.getElementById('em-time').textContent = formatTime(ts);
-  showToast('Rate calculated: '+pct.toFixed(1)+'%');
+  // Update the collapsed header summary
+  const summary = document.getElementById('est-summary');
+  if (summary) {
+    let color = pct < 100 ? '#E8750A' : pct > 102 ? '#EF4444' : '#22C55E';
+    summary.innerHTML = '<span style="color:' + color + ';font-weight:800">' + pct.toFixed(1) + '%</span> · ' + formatTime(ts);
+  }
+  // Update dashboard rate
+  document.getElementById('ds-rate').textContent = pct.toFixed(1)+'%';
+
+  // Auto-collapse after calculation
+  sectionState.est = false;
+  document.getElementById('est-body').classList.add('collapsed');
+  const lbl = document.getElementById('est-toggle-label');
+  if (lbl && summary) lbl.innerHTML = summary.outerHTML + ' ▸ tap to expand';
+
+  showToast('Rate: ' + pct.toFixed(1) + '% — saved ✓');
 }
 
 function renderRateGauge(pct, tonnage, area, ts) {
@@ -864,7 +873,6 @@ if(paveSess) {
 refreshDash();
 renderWidthLog();
 renderTruckLog();
-if(rateEstimates.length>0) renderRateGauge();
 </script>
 </body>
 </html>
