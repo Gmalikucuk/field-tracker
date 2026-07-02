@@ -133,7 +133,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:system-
 <div class="tracker-wrap on" id="pg-pave">
 
   <div class="topbar">
-    <button class="back" onclick="history.back()">← Sessions</button>
+    <button class="back" onclick="window.location.href='index.html?activity=paving'">← Sessions</button>
     <div class="tb-title" id="pave-title">Segment 2 · Hwy 1 NBL</div>
     <div class="tb-sub" id="pave-sub">2 Jul 26 · Top Lift · Paving</div>
   </div>
@@ -149,7 +149,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:system-
   <div class="scroll" id="pave-scroll">
 
     <!-- ── SECTION 1: RATE ESTIMATOR ── -->
-    <div class="section-header" onclick="toggleSection('est')" style="background:var(--bg)">
+    <div class="section-header" onclick="toggleSection('est')" style="background:var(--surface2);">
       <span class="section-header-title">📐 Rate Estimator</span>
       <span class="section-header-right" id="est-toggle-label">
         <span id="est-summary" style="color:var(--muted);font-size:12px;margin-right:8px">—</span>
@@ -165,7 +165,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:system-
           </div>
           <div class="ef">
             <span class="el">Width at ST (m) <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></span>
-            <input class="ei" id="est-w" type="number" inputmode="decimal" step="0.01" placeholder="auto">
+            <input class="ei" id="est-w" type="number" inputmode="decimal" step="0.01" placeholder="auto" value="">
           </div>
         </div>
         <button class="calc-btn" onclick="calcRate()">Calculate Rate →</button>
