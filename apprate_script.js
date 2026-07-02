@@ -94,145 +94,52 @@ function reconstruct(data) {
 function buildSegments(widthReadings, startSt, endSt) {
   if (!widthReadings || widthReadings.length < 2) return [];
 
-  // Sort by station (handle LKI rollover: if station suddenly drops > 5000, it's a rollover)
-  const sorted = [...widthReadings].sort((a, b) => {
-    const stA = Number(a.station), stB = Number(b.station);
-    // Rollover detection: treat post-rollover small numbers as large
-    return stA - stB;
-  });
+  // CRITICAL: Keep readings in PHYSICAL field order (as entered, not sorted by station)
+  // The LKI rollover means station numbers reset, but physical order is preserved
+  // by the sequence of readings as measured in the field.
+  var ordered = widthReadings.slice(); // preserve original order
 
-  const segments = [];
-  let cumulativeArea = 0;
-  let cumulativeLength = 0;
+  var segments = [];
+  var runningArea = 0;
 
-  for (let i = 1; i < sorted.length; i++) {
-    const prev = sorted[i-1];
-    const curr = sorted[i];
-    const stPrev = Number(prev.station);
-    const stCurr = Number(curr.station);
-    const wPrev = Number(prev.width);
-    const wCurr = Number(curr.width);
+  for (var i = 1; i < ordered.length; i++) {
+    var prev = ordered[i-1];
+    var curr = ordered[i];
+    var stPrev = Number(prev.station);
+    var stCurr = Number(curr.station);
+    var wPrev = Number(prev.width);
+    var wCurr = Number(curr.width);
 
-    // Detect LKI rollover (station jumps from ~45060 to ~0)
-    const rawDiff = Math.abs(stCurr - stPrev);
-    const isRollover = rawDiff > 5000;
-    const isSameStation = rawDiff < 0.01;
+    // Detect LKI rollover: large station jump means physical continuity with reset numbering
+    var rawDiff = Math.abs(stCurr - stPrev);
+    var isRollover = rawDiff > 5000;
+    var isSame = rawDiff < 0.01;
 
-    const length = (isRollover || isSameStation) ? 0 : rawDiff;
-    const avgWidth = isSameStation ? wCurr : (wPrev + wCurr) / 2;
-    const area = Math.round(length * avgWidth * 100) / 100;
-
-    cumulativeArea = Math.round((cumulativeArea + area) * 100) / 100;
-    cumulativeLength += length;
+    var length = (isRollover || isSame) ? 0 : rawDiff;
+    var avgWidth = isSame ? wCurr : (wPrev + wCurr) / 2;
+    avgWidth = Math.round(avgWidth * 100) / 100;
+    var area = Math.round(length * avgWidth * 100) / 100;
+    var aStart = runningArea;
+    runningArea = Math.round((runningArea + area) * 100) / 100;
 
     segments.push({
       fromStation: stPrev,
       toStation: stCurr,
       fromWidth: wPrev,
       toWidth: wCurr,
-      avgWidth: Math.round(avgWidth * 100) / 100,
-      length,
-      area,
-      cumulativeArea,
-      cumulativeLength,
-      isRollover
+      avgWidth: avgWidth,
+      length: length,
+      area: area,
+      areaStart: aStart,
+      areaEnd: runningArea,
+      isRollover: isRollover,
+      isSame: isSame
     });
   }
 
   return segments;
 }
 
-// - CLAUDE RECONSTRUCTION -------------------------
-
-function callClaude(data, trucks, segments, totalArea, totalTonnage) {
-  try {
-    const apiKey = PropertiesService.getScriptProperties().getProperty('CLAUDE_API_KEY');
-    if (!apiKey) return { rows: buildFallbackDistribution(trucks, segments, totalArea, totalTonnage) };
-
-    const prompt = buildReconstructionPrompt(data, trucks, segments, totalArea, totalTonnage);
-
-    const response = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01'
-      },
-      payload: JSON.stringify({
-        model: CLAUDE_MODEL,
-        max_tokens: 4000,
-        messages: [{ role: 'user', content: prompt }]
-      }),
-      muteHttpExceptions: true
-    });
-
-    const result = JSON.parse(response.getContentText());
-    if (result.error) {
-      Logger.log('Claude API error: ' + JSON.stringify(result.error));
-      return { rows: buildFallbackDistribution(trucks, segments, totalArea, totalTonnage) };
-    }
-
-    const text = result.content[0].text;
-    // Extract JSON from Claude's response
-    const jsonMatch = text.match(/\[[\s\S]*\]/);
-    if (!jsonMatch) return { rows: buildFallbackDistribution(trucks, segments, totalArea, totalTonnage) };
-
-    const rows = JSON.parse(jsonMatch[0]);
-    return { rows };
-  } catch(err) {
-    Logger.log('callClaude error: ' + err.toString());
-    return { rows: buildFallbackDistribution(trucks, segments, totalArea, totalTonnage) };
-  }
-}
-
-function buildReconstructionPrompt(data, trucks, segments, totalArea, totalTonnage) {
-  const blendedRate = totalTonnage * 1000 / totalArea;
-  const blendedPct = blendedRate / TARGET_RATE_KG_M2 * 100;
-
-  return `You are reconstructing a highway paving application rate report for MoTI (Ministry of Transportation and Infrastructure) in BC, Canada.
-
-PROJECT: ${data.segment} ${data.dirLabel}, ${data.date}
-Route: from ST ${data.startStation} to ST ${data.endStation}
-Target application rate: ${TARGET_RATE_KG_M2} kg/m2 (density 2.487 t/m3 x depth 0.05m x 1000)
-Total top lift tonnage: ${totalTonnage.toFixed(2)} t
-Total paved area: ${totalArea.toFixed(2)} m2
-Blended day rate: ${blendedRate.toFixed(2)} kg/m2 = ${blendedPct.toFixed(2)}%
-
-STAKE WIDTH READINGS (station -> width in metres):
-${segments.map(s => `ST ${s.fromStation} to ST ${s.toStation}: avg width ${s.avgWidth}m, length ${s.length}m, area ${s.area}m2${s.isRollover ? ' [LKI ROLLOVER - zero length]' : ''}`).join('\n')}
-
-TRUCKS IN ARRIVAL ORDER:
-${trucks.map((t, i) => `${i+1}. Vehicle ${t.vehicle}, Ticket ${t.ticket}, ${Number(t.tonnage).toFixed(2)}t`).join('\n')}
-
-SUPERINTENDENT NOTES: ${data.superintendentNotes || 'None'}
-
-TASK: Distribute each truck's tonnage to a From/To station range, working through the road in sequence (trucks arrive in order, each one paves the next stretch). The distribution must:
-1. Work through stations in order from ${data.startStation} toward ${data.endStation}
-2. Use the stake width readings to calculate area for each truck's stretch
-3. Produce a per-truck application rate (tonnage x 1000 / area) that stays close to ${blendedPct.toFixed(1)}% overall
-4. Handle the LKI rollover naturally (stations go from ~45060 to ~0 and continue)
-5. If superintendent noted blowout zones or irregular sections, concentrate higher rates there
-
-Return ONLY a JSON array, no other text:
-[
-  {
-    "slNo": 1,
-    "vehicle": "51",
-    "ticket": "20253503",
-    "tonnage": 14.46,
-    "cumulativeTonnage": 14.46,
-    "fromStation": 44896,
-    "toStation": 44908,
-    "length": 12.14,
-    "cummLength": 12.14,
-    "avgWidth": 9.4,
-    "area": 114.12,
-    "pull": "NBL",
-    "rateKgM2": 126.71,
-    "ratePct": 101.90
-  }
-]`;
-}
 
 // - FALLBACK DISTRIBUTION (overlap-based, handles LKI rollover correctly) --
 
@@ -282,6 +189,8 @@ function buildFallbackDistribution(trucks, segments, totalArea, totalTonnage) {
           toStation = s.toStation;
         } else {
           var stFrac = Math.min((targetCumArea - s.areaStart) / s.area, 1);
+          // Interpolate: note toStation may be less than fromStation after rollover
+          // but within the same LKI sequence stations always increase
           toStation = Math.round((s.fromStation + stFrac * (s.toStation - s.fromStation)) * 100) / 100;
         }
       }
