@@ -62,6 +62,24 @@ function doPost(e) {
 
 function reconstruct(data) {
   try {
+    // Expand compact format if used (t/w arrays instead of trucks/widthReadings)
+    if (data.t && !data.trucks) {
+      data.trucks = data.t.map(function(r) {
+        return { vehicle: String(r[0]), ticket: String(r[1]), tonnage: Number(r[2]),
+                 activity: r[3] === 1 ? 'levelcourse' : 'toplift' };
+      });
+      data.widthReadings = data.w.map(function(r) {
+        return { station: Number(r[0]), width: Number(r[1]) };
+      });
+      data.direction = data.dir || data.direction || 'NB';
+      data.segment = data.seg || data.segment || '';
+      data.dirLabel = data.lki || data.dirLabel || '';
+      data.startStation = data.stFrom || data.startStation || 0;
+      data.endStation = data.stTo || data.endStation || 0;
+      data.tabName = data.tab || data.tabName || '';
+      data.superintendentNotes = data.notes || '';
+    }
+
     // data = {
     //   action: 'reconstruct',
     //   date: '2 Jul 26',
