@@ -1,4 +1,4 @@
-// Application Rate Reconstruction — Google Sheets Backend
+// Application Rate Reconstruction - Google Sheets Backend
 // Install this script on: https://docs.google.com/spreadsheets/d/1shr2bn5KMjKkYfVWQGXJ8ACuz07YvCGURIOlth2m51k
 // Deploy as Web App: Execute as Me, Anyone
 
@@ -6,7 +6,7 @@ const SHEET_ID = '1shr2bn5KMjKkYfVWQGXJ8ACuz07YvCGURIOlth2m51k';
 const CLAUDE_MODEL = 'claude-sonnet-4-6';
 const TARGET_RATE_KG_M2 = 124.35;
 
-// ── ENTRY POINTS ──────────────────────────────────────────────────────────
+// - ENTRY POINTS -----------------------------
 
 function doGet(e) {
   const cb = e.parameter.callback || null;
@@ -39,7 +39,7 @@ function doPost(e) {
   }
 }
 
-// ── RECONSTRUCTION ────────────────────────────────────────────────────────
+// - RECONSTRUCTION ----------------------------
 
 function reconstruct(data) {
   try {
@@ -89,7 +89,7 @@ function reconstruct(data) {
   }
 }
 
-// ── SEGMENT BUILDER ───────────────────────────────────────────────────────
+// - SEGMENT BUILDER ----------------------------
 
 function buildSegments(widthReadings, startSt, endSt) {
   if (!widthReadings || widthReadings.length < 2) return [];
@@ -142,7 +142,7 @@ function buildSegments(widthReadings, startSt, endSt) {
   return segments;
 }
 
-// ── CLAUDE RECONSTRUCTION ─────────────────────────────────────────────────
+// - CLAUDE RECONSTRUCTION -------------------------
 
 function callClaude(data, trucks, segments, totalArea, totalTonnage) {
   try {
@@ -193,13 +193,13 @@ function buildReconstructionPrompt(data, trucks, segments, totalArea, totalTonna
 
 PROJECT: ${data.segment} ${data.dirLabel}, ${data.date}
 Route: from ST ${data.startStation} to ST ${data.endStation}
-Target application rate: ${TARGET_RATE_KG_M2} kg/m² (density 2.487 t/m³ × depth 0.05m × 1000)
+Target application rate: ${TARGET_RATE_KG_M2} kg/m2 (density 2.487 t/m3 x depth 0.05m x 1000)
 Total top lift tonnage: ${totalTonnage.toFixed(2)} t
-Total paved area: ${totalArea.toFixed(2)} m²
-Blended day rate: ${blendedRate.toFixed(2)} kg/m² = ${blendedPct.toFixed(2)}%
+Total paved area: ${totalArea.toFixed(2)} m2
+Blended day rate: ${blendedRate.toFixed(2)} kg/m2 = ${blendedPct.toFixed(2)}%
 
-STAKE WIDTH READINGS (station → width in metres):
-${segments.map(s => `ST ${s.fromStation} to ST ${s.toStation}: avg width ${s.avgWidth}m, length ${s.length}m, area ${s.area}m²${s.isRollover ? ' [LKI ROLLOVER - zero length]' : ''}`).join('\n')}
+STAKE WIDTH READINGS (station -> width in metres):
+${segments.map(s => `ST ${s.fromStation} to ST ${s.toStation}: avg width ${s.avgWidth}m, length ${s.length}m, area ${s.area}m2${s.isRollover ? ' [LKI ROLLOVER - zero length]' : ''}`).join('\n')}
 
 TRUCKS IN ARRIVAL ORDER:
 ${trucks.map((t, i) => `${i+1}. Vehicle ${t.vehicle}, Ticket ${t.ticket}, ${Number(t.tonnage).toFixed(2)}t`).join('\n')}
@@ -209,7 +209,7 @@ SUPERINTENDENT NOTES: ${data.superintendentNotes || 'None'}
 TASK: Distribute each truck's tonnage to a From/To station range, working through the road in sequence (trucks arrive in order, each one paves the next stretch). The distribution must:
 1. Work through stations in order from ${data.startStation} toward ${data.endStation}
 2. Use the stake width readings to calculate area for each truck's stretch
-3. Produce a per-truck application rate (tonnage × 1000 ÷ area) that stays close to ${blendedPct.toFixed(1)}% overall
+3. Produce a per-truck application rate (tonnage x 1000 / area) that stays close to ${blendedPct.toFixed(1)}% overall
 4. Handle the LKI rollover naturally (stations go from ~45060 to ~0 and continue)
 5. If superintendent noted blowout zones or irregular sections, concentrate higher rates there
 
@@ -234,11 +234,11 @@ Return ONLY a JSON array, no other text:
 ]`;
 }
 
-// ── FALLBACK DISTRIBUTION (no Claude API key) ─────────────────────────────
+// - FALLBACK DISTRIBUTION (no Claude API key) ---------------
 
 function buildFallbackDistribution(trucks, segments, totalArea, totalTonnage) {
-  // Pure mathematical distribution — same algorithm as our verified Python scripts
-  const rate = totalTonnage / totalArea; // t/m²
+  // Pure mathematical distribution - same algorithm as our verified Python scripts
+  const rate = totalTonnage / totalArea; // t/m2
   const rows = [];
   let cumTonnage = 0;
   let cumArea = 0;
@@ -310,7 +310,7 @@ function buildFallbackDistribution(trucks, segments, totalArea, totalTonnage) {
   return rows;
 }
 
-// ── WRITE TO SHEET ─────────────────────────────────────────────────────────
+// - WRITE TO SHEET -----------------------------
 
 function writeToSheet(tabName, data, claudeResult, topLiftTrucks, levelCourseTrucks, sideRoadTrucks, totalArea, totalTonnage) {
   const ss = SpreadsheetApp.openById(SHEET_ID);
@@ -325,7 +325,7 @@ function writeToSheet(tabName, data, claudeResult, topLiftTrucks, levelCourseTru
   const blendedRate = totalArea > 0 ? totalTonnage * 1000 / totalArea : 0;
   const blendedPct = blendedRate / TARGET_RATE_KG_M2 * 100;
 
-  // ── HEADER (rows 1-2) ───────────────────────────────────────────────────
+  // - HEADER (rows 1-2) --------------------------
   const headers1 = ['Sl. No.', 'Vehicle Detail', 'Ticket No.', 'Tonnage', '', 'Temp. (C)',
     'Truck', '', '', '', '', 'Ave Width', 'Area', 'Pull', 'Rate Kg/M2', 'RATE %', 'Comment'];
   const headers2 = ['', '', '', 'Current', 'Cummulative', '',
@@ -343,14 +343,14 @@ function writeToSheet(tabName, data, claudeResult, topLiftTrucks, levelCourseTru
   sheet.getRange(1, 1, 2, 17).setBackground('#1A1A2E').setFontColor('#FFFFFF')
     .setFontWeight('bold').setFontSize(9).setHorizontalAlignment('center');
 
-  // ── DATE/LOCATION ROW (row 3) ───────────────────────────────────────────
+  // - DATE/LOCATION ROW (row 3) ----------------------
   const locStr = `${data.date}     Location: ${data.segment} | ${data.startStation} to ${data.endStation} ${pull}`;
   sheet.getRange(3, 1, 1, 16).merge().setValue(locStr)
     .setBackground('#F59E0B').setFontColor('#111').setFontWeight('bold').setFontSize(10);
   // Target rate in col Q
   sheet.getRange(3, 17).setValue(TARGET_RATE_KG_M2).setFontWeight('bold');
 
-  // ── TRUCK ROWS ──────────────────────────────────────────────────────────
+  // - TRUCK ROWS -----------------------------
   const DATA_START = 4;
 
   if (rows.length > 0) {
@@ -378,7 +378,7 @@ function writeToSheet(tabName, data, claudeResult, topLiftTrucks, levelCourseTru
     }
   }
 
-  // ── LEVEL COURSE ROWS ───────────────────────────────────────────────────
+  // - LEVEL COURSE ROWS --------------------------
   let nextRow = DATA_START + rows.length;
   let cumForLC = totalTonnage;
   const levelCourseTonnage = levelCourseTrucks.reduce((s,t) => s+Number(t.tonnage), 0);
@@ -398,7 +398,7 @@ function writeToSheet(tabName, data, claudeResult, topLiftTrucks, levelCourseTru
     });
   }
 
-  // ── SUMMARY BLOCK ───────────────────────────────────────────────────────
+  // - SUMMARY BLOCK ----------------------------
   nextRow += 1; // blank row
 
   const summaryData = [
@@ -424,7 +424,7 @@ function writeToSheet(tabName, data, claudeResult, topLiftTrucks, levelCourseTru
     }
   });
 
-  // ── COLUMN WIDTHS ───────────────────────────────────────────────────────
+  // - COLUMN WIDTHS ----------------------------
   [40,60,85,65,75,50,65,65,65,65,30,70,70,40,75,65,80].forEach((w,i) => {
     sheet.setColumnWidth(i+1, w);
   });
@@ -432,7 +432,7 @@ function writeToSheet(tabName, data, claudeResult, topLiftTrucks, levelCourseTru
   sheet.setFrozenRows(3);
 }
 
-// ── HELPERS ───────────────────────────────────────────────────────────────
+// - HELPERS --------------------------------
 
 function formatTabName(date, direction) {
   return (date || 'Unknown').replace(/\s+/g,'') + '-' + (direction||'NB');
@@ -467,7 +467,7 @@ function respond(obj, callback) {
   return ContentService.createTextOutput(body).setMimeType(mime);
 }
 
-// ── SETUP: run once to store API key ─────────────────────────────────────
+// - SETUP: run once to store API key -------------------
 // Call this function manually once from the Apps Script editor:
 // setApiKey('your-anthropic-api-key-here')
 function setApiKey(key) {
