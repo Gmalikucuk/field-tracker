@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Test Reconstruction — June 27</title>
+<style>
+body{font-family:system-ui;background:#111;color:#f3f3f3;padding:20px;max-width:600px;margin:0 auto}
+h2{color:#F59E0B;margin-bottom:20px}
+.btn{background:#F59E0B;color:#111;border:none;padding:16px 32px;font-size:16px;font-weight:800;border-radius:12px;cursor:pointer;width:100%}
+.btn:disabled{background:#444;color:#888;cursor:not-allowed}
+.status{margin-top:20px;padding:16px;background:#1C1C1C;border-radius:12px;font-size:14px;line-height:1.6}
+.ok{color:#22C55E;font-weight:700}
+.err{color:#EF4444;font-weight:700}
+pre{background:#0a0a0a;padding:12px;border-radius:8px;overflow-x:auto;font-size:12px;margin-top:10px}
+</style>
+</head>
+<body>
+<h2>June 27 Reconstruction Test</h2>
+<p style="color:#888;margin-bottom:20px">Sends June 27 NB paving data to the Application Rate reconstruction script. Check the Toplift 50mm Application Rate Sheet after running.</p>
+<button class="btn" id="btn" onclick="runTest()">Run June 27 Reconstruction →</button>
+<div class="status" id="status">Ready. Tap the button to trigger reconstruction.</div>
+
+<script>
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyPEsZ22gCdz_J0w_t2LJPOz_pG1tLfza9F5Hdczz1WB8uR5p6j533LS_9GNej7QObC/exec';
+
+const payload = {
+  action: 'reconstruct',
+  date: '27 Jun 26',
+  direction: 'NB',
+  segment: 'Segment 2',
+  dirLabel: 'Hwy 1 NBL',
+  startStation: 44896,
+  endStation: 671,
+  tabName: '27Jun26-NB',
+  superintendentNotes: 'Blowouts ST 300 to 671, increased tonnage required in this zone.',
+  trucks: [
+    {vehicle:'51',ticket:'20253503',tonnage:14.46,activity:'toplift'},
+    {vehicle:'40',ticket:'20253504',tonnage:18.68,activity:'toplift'},
+    {vehicle:'21',ticket:'20253505',tonnage:32.18,activity:'toplift'},
+    {vehicle:'206',ticket:'20253506',tonnage:35.32,activity:'toplift'},
+    {vehicle:'48',ticket:'20253507',tonnage:14.58,activity:'toplift'},
+    {vehicle:'55',ticket:'20253508',tonnage:32.06,activity:'toplift'},
+    {vehicle:'201',ticket:'20253509',tonnage:34.5,activity:'toplift'},
+    {vehicle:'59',ticket:'20253510',tonnage:34.96,activity:'toplift'},
+    {vehicle:'25',ticket:'20253511',tonnage:33.04,activity:'toplift'},
+    {vehicle:'60',ticket:'20253512',tonnage:34.6,activity:'toplift'},
+    {vehicle:'56',ticket:'20253513',tonnage:36.04,activity:'toplift'},
+    {vehicle:'21',ticket:'20253514',tonnage:33.66,activity:'toplift'},
+    {vehicle:'40',ticket:'20253515',tonnage:18.98,activity:'toplift'},
+    {vehicle:'206',ticket:'20253516',tonnage:33.48,activity:'toplift'},
+    {vehicle:'51',ticket:'20253517',tonnage:14.48,activity:'toplift'},
+    {vehicle:'55',ticket:'20253518',tonnage:34.08,activity:'toplift'},
+    {vehicle:'007',ticket:'20253519',tonnage:32.24,activity:'toplift'},
+    {vehicle:'57',ticket:'20253520',tonnage:34.84,activity:'toplift'},
+    {vehicle:'59',ticket:'20253521',tonnage:34.88,activity:'toplift'},
+    {vehicle:'201',ticket:'20253522',tonnage:34.7,activity:'toplift'},
+    {vehicle:'48',ticket:'20253523',tonnage:14.6,activity:'toplift'},
+    {vehicle:'206',ticket:'20253524',tonnage:34.92,activity:'toplift'},
+    {vehicle:'007',ticket:'20253525',tonnage:33.26,activity:'toplift'},
+    {vehicle:'21',ticket:'20253526',tonnage:32.82,activity:'toplift'},
+    {vehicle:'55',ticket:'20253527',tonnage:31.84,activity:'toplift'},
+    {vehicle:'59',ticket:'20253528',tonnage:33.74,activity:'toplift'},
+    {vehicle:'57',ticket:'20253529',tonnage:32.6,activity:'toplift'},
+    {vehicle:'25',ticket:'20253530',tonnage:31.06,activity:'toplift'},
+    {vehicle:'60',ticket:'20253531',tonnage:33.2,activity:'toplift'},
+    {vehicle:'56',ticket:'20253532',tonnage:36.38,activity:'toplift'},
+    {vehicle:'201',ticket:'20253533',tonnage:34.52,activity:'toplift'},
+    {vehicle:'206',ticket:'20253534',tonnage:34.5,activity:'toplift'},
+    {vehicle:'007',ticket:'20253535',tonnage:34.86,activity:'toplift'},
+    {vehicle:'55',ticket:'20253537',tonnage:34.54,activity:'toplift'},
+    {vehicle:'21',ticket:'20253538',tonnage:31.5,activity:'toplift'},
+    {vehicle:'59',ticket:'20253539',tonnage:34.96,activity:'toplift'},
+    {vehicle:'57',ticket:'20253540',tonnage:33.74,activity:'toplift'},
+    {vehicle:'25',ticket:'20253542',tonnage:33.22,activity:'toplift'},
+    {vehicle:'48',ticket:'20253536',tonnage:14.26,activity:'levelcourse'},
+    {vehicle:'40',ticket:'20253541',tonnage:19.16,activity:'levelcourse'},
+    {vehicle:'41',ticket:'20253543',tonnage:30.44,activity:'levelcourse'},
+  ],
+  widthReadings: [
+    {station:44896,width:9.5},{station:44900,width:9.8},
+    {station:44950,width:11},{station:45000,width:12.5},
+    {station:45022,width:13},{station:45033,width:9.5},
+    {station:45060,width:9.5},{station:0,width:9.5},
+    {station:34,width:9.5},{station:34,width:15.3},
+    {station:50,width:15.3},{station:100,width:13.5},
+    {station:150,width:13.5},{station:200,width:13.5},
+    {station:250,width:12.6},{station:300,width:11.5},
+    {station:350,width:9.3},{station:400,width:9.3},
+    {station:450,width:9.3},{station:500,width:9.3},
+    {station:550,width:9.3},{station:600,width:9.3},
+    {station:650,width:9.3},{station:671,width:9.3},
+  ]
+};
+
+function jsonpCall(url) {
+  return new Promise((resolve) => {
+    const cb = 'rc_cb_' + Date.now();
+    const timer = setTimeout(() => {
+      cleanup(); resolve({ok:false,error:'timeout after 60s'});
+    }, 60000);
+    window[cb] = r => { cleanup(); resolve(r||{ok:false,error:'empty'}); };
+    function cleanup() {
+      clearTimeout(timer); delete window[cb];
+      const el=document.getElementById('_rcjsc'); if(el) el.remove();
+    }
+    const s = document.createElement('script');
+    s.id = '_rcjsc';
+    s.onerror = () => { cleanup(); resolve({ok:false,error:'script load failed'}); };
+    s.src = url + (url.includes('?')?'&':'?') + 'callback=' + cb;
+    document.head.appendChild(s);
+  });
+}
+
+async function runTest() {
+  const btn = document.getElementById('btn');
+  const status = document.getElementById('status');
+  btn.disabled = true;
+  btn.textContent = 'Running… (may take 30-60 seconds for AI reconstruction)';
+  status.innerHTML = '<span style="color:#F59E0B">⏳ Sending to reconstruction script…</span>';
+
+  const url = SCRIPT_URL + '?data=' + encodeURIComponent(JSON.stringify(payload));
+  const result = await jsonpCall(url);
+
+  if (result.ok) {
+    status.innerHTML = `
+      <span class="ok">✓ Reconstruction complete!</span><br><br>
+      Tab created: <strong>${result.tabName}</strong><br>
+      Total area: <strong>${result.totalArea} m²</strong><br>
+      Total tonnage: <strong>${result.totalTonnage} t</strong><br>
+      Blended rate: <strong>${result.blendedRate} kg/m² = ${result.blendedRatePct}%</strong><br>
+      Rows written: <strong>${result.rows}</strong><br><br>
+      <span style="color:#888">Check the Toplift 50mm Application Rate Sheet — tab "27Jun26-NB" should now be populated.</span>
+    `;
+  } else {
+    status.innerHTML = `<span class="err">✗ Error: ${result.error}</span><pre>${JSON.stringify(result,null,2)}</pre>`;
+  }
+  btn.disabled = false;
+  btn.textContent = 'Run Again';
+}
+</script>
+</body>
+</html>
