@@ -138,7 +138,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:system-
         <div><div class="ac-name">Milling</div><div class="ac-desc">Cold mill — area tracking</div></div>
         <div class="ac-arrow">›</div>
       </div>
-      <div class="activity-card" onclick="showToast('Paving coming soon')">
+      <div class="activity-card" onclick="goActivity('paving')">
         <div><div class="ac-name">Paving</div><div class="ac-desc">Top lift & level course — rate tracking</div></div>
         <div class="ac-arrow">›</div>
       </div>
@@ -334,6 +334,21 @@ function goActivity(activity) {
   show('pg-dates');
   loadDateList();
 }
+
+function openPavingSession(dateStr, seg, dir, dirLabel, startSt, inc, startTime) {
+  // Navigate to paving.html with session params
+  const params = new URLSearchParams({
+    date: dateStr,
+    seg: seg||'S2',
+    segName: seg==='S1'?'Segment 1':'Segment 2',
+    dir: dir||'NB',
+    dirLabel: dirLabel||'Hwy 1 NBL',
+    startSt: startSt||0,
+    inc: inc||1,
+    startTime: startTime||''
+  });
+  window.location.href = 'paving.html?' + params.toString();
+}
 function goDates() {
   cancelEdit();
   show('pg-dates');
@@ -473,6 +488,24 @@ async function loadDateList() {
 
 // ── OPEN A DATE ───────────────────────────────────────────────────────────
 async function openDate(tabOrDate, closed) {
+  // If paving activity, route to paving setup instead
+  if (currentActivity === 'paving') {
+    const last = getLastSessionMeta();
+    const today = todayStr();
+    const dateStr = tabOrDate.startsWith('FT-')
+      ? tabOrDate.replace('FT-','').replace(/(\d{1,2})([A-Z][a-z]{2})(\d{2})/, '$1 $2 $3')
+      : tabOrDate;
+    openPavingSession(
+      dateStr,
+      last?.seg||'S2',
+      last?.dir||'NB',
+      last?.dir==='NB'?'Hwy 1 NBL':'Hwy 1 SBL',
+      last?.endSt||0,
+      1,
+      ''
+    );
+    return;
+  }
   // Accept either a tab name (FT-27Jun26) or a date string (27 Jun 26)
   let tab, dateStr;
   if (tabOrDate.startsWith('FT-')) {
