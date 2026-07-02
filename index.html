@@ -662,6 +662,8 @@ function setupCarryForward(last) {
     carryForward = null;
   }
 }
+
+function getLastSessionMeta() {
   const keys = Object.keys(localStorage).filter(k=>k.startsWith('fts_'));
   if (!keys.length) return null;
   keys.sort();
@@ -678,6 +680,7 @@ function setupCarryForward(last) {
     }
     return meta;
   } catch(e) { return null; }
+}
 
 // ── SETUP ─────────────────────────────────────────────────────────────────
 function buildSegGrid() {
