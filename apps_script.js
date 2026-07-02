@@ -19,6 +19,11 @@ function doGet(e) {
       return respond(readSession(e.parameter.tabName), cb);
     }
 
+    // OCR: read scale ticket image via Claude API
+    if (action === 'ocr_ticket') {
+      return respond(ocrTicket(e.parameter.img), cb);
+    }
+
     // Save/push session data
     const raw = e.parameter.data;
     if (!raw) return respond({ ok: false, error: 'No data' }, cb);
@@ -355,5 +360,51 @@ function savePavingSession(data) {
     return { ok: true, tabName, trucks: (data.truckEntries||[]).length, widths: (data.widthEntries||[]).length };
   } catch(err) {
     return { ok: false, error: 'savePavingSession: ' + err.toString() };
+  }
+}
+
+function ocrTicket(base64img) {
+  try {
+    if (!base64img) return { ok: false, error: 'No image data' };
+    const apiKey = PropertiesService.getScriptProperties().getProperty('CLAUDE_API_KEY');
+    if (!apiKey) return { ok: false, error: 'No API key configured' };
+
+    const payload = {
+      model: 'claude-sonnet-4-6',
+      max_tokens: 200,
+      messages: [{
+        role: 'user',
+        content: [
+          {
+            type: 'image',
+            source: { type: 'base64', media_type: 'image/jpeg', data: base64img }
+          },
+          {
+            type: 'text',
+            text: 'This is an asphalt plant scale ticket. Extract: Vehicle number (e.g. 40), Ticket number (e.g. 20253541), Net weight in tonnes (e.g. 19.16). Reply with ONLY valid JSON, no other text: {"vehicle":"40","ticket":"20253541","tonnes":"19.16"}'
+          }
+        ]
+      }]
+    };
+
+    const response = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01'
+      },
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    });
+
+    const result = JSON.parse(response.getContentText());
+    if (result.error) return { ok: false, error: result.error.message || 'API error' };
+
+    const text = result.content[0].text.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(text);
+    return { ok: true, vehicle: parsed.vehicle || '', ticket: parsed.ticket || '', tonnes: parsed.tonnes || '' };
+  } catch(err) {
+    return { ok: false, error: 'ocrTicket: ' + err.toString() };
   }
 }
