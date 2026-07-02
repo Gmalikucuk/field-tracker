@@ -85,7 +85,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:system-
 /* ── TRUCK LOG ── */
 .truck-entry{padding:12px 16px;border-bottom:1px solid var(--border);background:var(--bg)}
 .truck-btns{display:flex;gap:10px;margin-bottom:10px}
-.cam-btn{flex:0 0 50px;height:50px;background:var(--surface2);border:1.5px solid var(--border);border-radius:12px;font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .truck-log{max-height:180px;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .tli{background:var(--surface);border-radius:10px;padding:10px 14px;margin:6px 16px;display:flex;justify-content:space-between;align-items:center;gap:8px}
 .tli-l .tk{font-size:14px;color:var(--muted)}
@@ -102,15 +101,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:system-
 .dv.a{color:var(--accent)}
 .dl{font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-top:2px}
 
-/* Camera preview */
-.cam-preview{display:none;position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:100;flex-direction:column;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:20px 16px 40px}
-.cam-preview.on{display:flex}
-.cam-preview img{width:100%;max-height:35vh;border-radius:12px;object-fit:contain;margin-bottom:12px}
-.cam-preview-title{color:#fff;font-size:16px;font-weight:700;margin-bottom:4px}
-.cam-preview-sub{color:var(--muted);font-size:13px;margin-bottom:16px}
-.ocr-result{background:var(--surface);border-radius:12px;padding:16px;width:100%}
-.ocr-field{margin-bottom:10px}
-.ocr-field:last-child{margin-bottom:0}
 
 /* Bottom bar */
 .bot{display:flex;gap:10px;padding:12px 16px;border-top:1px solid var(--border);flex-shrink:0;background:var(--bg)}
@@ -134,7 +124,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:system-
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 
 /* hidden file input */
-#cam-input{display:none}
+
 </style>
 </head>
 <body>
@@ -214,7 +204,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:system-
     <div class="section-body" id="truck-body">
       <div class="truck-entry">
         <div class="truck-btns">
-          <button class="cam-btn" onclick="openCamera()" title="Scan ticket">📷</button>
           <div style="flex:1;display:flex;gap:8px">
             <div class="ef">
               <span class="el">Vehicle</span>
@@ -229,7 +218,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:system-
               <input class="ei" id="t-ton" type="number" inputmode="decimal" step="0.01" placeholder="19.16" style="width:100%;font-size:18px">
             </div>
           </div>
-        </div>
         <button class="btn btn-accent" style="height:48px;font-size:15px" onclick="addTruck()">Add Truck</button>
       </div>
       <div class="truck-log" id="truck-log">
@@ -242,31 +230,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:system-
   <div class="bot">
     <button class="endbtn" onclick="openEndModal()">End Session</button>
     <button class="synbtn" id="pave-synbtn" onclick="paveSync()">☁</button>
-  </div>
-</div>
-
-<!-- CAMERA PREVIEW / OCR RESULT -->
-<div class="cam-preview" id="cam-preview">
-  <div class="cam-preview-title" id="cam-title">Reading ticket…</div>
-  <img id="cam-img" src="" alt="">
-  <div class="cam-preview-sub" id="cam-sub">Please wait</div>
-  <div class="ocr-result" id="ocr-result" style="display:none">
-    <div class="ocr-field">
-      <span class="el">Vehicle</span>
-      <input class="inp" id="ocr-veh" type="text" inputmode="numeric" style="font-size:18px">
-    </div>
-    <div class="ocr-field">
-      <span class="el">Ticket #</span>
-      <input class="inp" id="ocr-tkt" type="text" inputmode="numeric" style="font-size:16px">
-    </div>
-    <div class="ocr-field">
-      <span class="el">Net Tonnes</span>
-      <input class="inp" id="ocr-ton" type="number" inputmode="decimal" step="0.01" style="font-size:18px">
-    </div>
-    <div style="display:flex;gap:10px;margin-top:14px">
-      <button class="btn btn-accent" style="height:48px;font-size:15px" onclick="confirmOCR()">Confirm & Add</button>
-      <button class="btn btn-ghost" style="height:48px;font-size:15px;flex:0 0 80px" onclick="closeCam()">Cancel</button>
-    </div>
   </div>
 </div>
 
@@ -292,7 +255,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:system-
   </div>
 </div>
 
-<input type="file" id="cam-input" accept="image/*" capture="environment">
 <div class="toast" id="toast"></div>
 
 <script>
@@ -655,100 +617,9 @@ function refreshDash() {
 }
 
 // ── CAMERA / OCR ──────────────────────────────────────────────────────────
-function openCamera() {
-  document.getElementById('cam-input').click();
-}
 
-document.getElementById('cam-input').addEventListener('change', async function(e) {
-  const file = e.target.files[0];
-  if(!file) return;
 
-  const reader = new FileReader();
-  reader.onload = async function(ev) {
-    const dataUrl = ev.target.result;
-    document.getElementById('cam-img').src = dataUrl;
-    document.getElementById('cam-title').textContent = 'Reading ticket…';
-    document.getElementById('cam-sub').textContent = 'Sending to Claude via server…';
-    document.getElementById('ocr-result').style.display = 'none';
-    document.getElementById('cam-preview').classList.add('on');
 
-    // Compress very aggressively — ticket text is large and readable even at low res
-    const compressed = await compressImage(dataUrl, 0.3, 600);  // max 600px, 0.3 quality
-    const base64 = compressed.split(',')[1];
-    console.log('Compressed image size:', Math.round(base64.length/1024), 'KB base64');
-
-    // Check if it fits in a URL (limit ~6000 chars for the image part)
-    if (base64.length > 6000) {
-      // Still too large — compress further
-      const compressed2 = await compressImage(dataUrl, 0.2, 400);
-      const base64small = compressed2.split(',')[1];
-      console.log('Further compressed:', Math.round(base64small.length/1024), 'KB');
-      var imgData = base64small;
-    } else {
-      var imgData = base64;
-    }
-
-    // Send to Apps Script proxy (has API key server-side)
-    try {
-      const result = await jsonpCall(
-        SCRIPT_URL + '?action=ocr_ticket&img=' + encodeURIComponent(imgData),
-        45000
-      );
-      if(result.ok) {
-        document.getElementById('ocr-veh').value = result.vehicle || '';
-        document.getElementById('ocr-tkt').value = result.ticket || '';
-        document.getElementById('ocr-ton').value = result.tonnes || '';
-        document.getElementById('cam-title').textContent = 'Confirm ticket details';
-        document.getElementById('cam-sub').textContent = 'Check values and tap Confirm';
-      } else {
-        document.getElementById('cam-title').textContent = 'Could not read ticket';
-        document.getElementById('cam-sub').textContent = (result.error || 'Unknown error') + ' — enter manually';
-        document.getElementById('ocr-veh').value='';
-        document.getElementById('ocr-tkt').value='';
-        document.getElementById('ocr-ton').value='';
-      }
-    } catch(err) {
-      document.getElementById('cam-title').textContent = 'Could not read ticket';
-      document.getElementById('cam-sub').textContent = 'Enter details manually below';
-      document.getElementById('ocr-veh').value='';
-      document.getElementById('ocr-tkt').value='';
-      document.getElementById('ocr-ton').value='';
-    }
-    document.getElementById('ocr-result').style.display = 'block';
-  };
-  reader.readAsDataURL(file);
-  this.value='';
-});
-
-async function compressImage(dataUrl, quality, maxDim) {
-  maxDim = maxDim || 1200;
-  return new Promise(resolve => {
-    const img = new Image();
-    img.onload = function() {
-      const canvas = document.createElement('canvas');
-      let w=img.width, h=img.height;
-      if(w>maxDim||h>maxDim) {
-        if(w>h){h=Math.round(h*maxDim/w);w=maxDim;}
-        else{w=Math.round(w*maxDim/h);h=maxDim;}
-      }
-      canvas.width=w; canvas.height=h;
-      canvas.getContext('2d').drawImage(img,0,0,w,h);
-      resolve(canvas.toDataURL('image/jpeg', quality));
-    };
-    img.src=dataUrl;
-  });
-}
-
-function confirmOCR() {
-  document.getElementById('t-veh').value = document.getElementById('ocr-veh').value;
-  document.getElementById('t-tkt').value = document.getElementById('ocr-tkt').value;
-  document.getElementById('t-ton').value = document.getElementById('ocr-ton').value;
-  closeCam();
-  addTruck();
-}
-function closeCam() {
-  document.getElementById('cam-preview').classList.remove('on');
-}
 
 // ── END SESSION ───────────────────────────────────────────────────────────
 function openEndModal() {
