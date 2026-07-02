@@ -366,18 +366,18 @@ function writeToSheet(tabName, data, claudeResult, topLiftTrucks, levelCourseTru
   const blendedPct = blendedRate / TARGET_RATE_KG_M2 * 100;
 
   // - HEADER (rows 1-2) --------------------------
-  const headers1 = ['Sl. No.', 'Vehicle Detail', 'Ticket No.', 'Tonnage', '', 'Temp. (C)',
-    'Truck', '', '', '', '', 'Ave Width', 'Area', 'Pull', 'Rate Kg/M2', 'RATE %', 'Comment'];
-  const headers2 = ['', '', '', 'Current', 'Cummulative', '',
-    'Total Length', 'Cumm. Length', 'From', 'To', 'M', 'M', 'Sq.m', '', '', '', ''];
+  const headers1 = ['Sl. No.', 'Vehicle Detail', 'Ticket No.', 'Tonnage', '', 'Tonnage used on site', 'Temp. (C)',
+    'Truck', '', 'Total Length', 'Cumm. Length', 'Ave Width', 'Area', 'Pull', 'Rate Kg/M2', 'RATE %', 'Comment'];
+  const headers2 = ['', '', '', 'Current', 'Cummulative', '', '',
+    'From', 'To', 'M', 'M', 'M', 'Sq.m', '', '', '', ''];
 
   sheet.getRange(1, 1, 1, headers1.length).setValues([headers1]);
   sheet.getRange(2, 1, 1, headers2.length).setValues([headers2]);
 
   // Merge header cells
-  [[1,4,1,5],[1,7,1,11]].forEach(([r1,c1,r2,c2]) => {
-    try { sheet.getRange(r1,c1,r2-r1+1,c2-c1+1).merge(); } catch(e) {}
-  });
+  // Merge: Tonnage over D-E (cols 4-5), Truck over H-K (cols 8-11)
+  try { sheet.getRange(1,4,1,2).merge(); } catch(e) {}
+  try { sheet.getRange(1,8,1,4).merge(); } catch(e) {}
 
   // Style header rows
   sheet.getRange(1, 1, 2, 17).setBackground('#1A1A2E').setFontColor('#FFFFFF')
@@ -396,21 +396,23 @@ function writeToSheet(tabName, data, claudeResult, topLiftTrucks, levelCourseTru
   if (rows.length > 0) {
     const dataRows = rows.map(r => [
       r.slNo, r.vehicle, r.ticket,
-      r.tonnage, r.cumulativeTonnage, '', // col F (temp) blank
-      r.length, r.cummLength, r.fromStation, r.toStation, // cols G-J (length, cumm, from, to)
-      '', // col K blank
-      r.avgWidth, r.area, pull, r.rateKgM2, r.ratePct ? r.ratePct + '%' : '',
-      r.comment || ''
+      r.tonnage, r.cumulativeTonnage, r.cumulativeTonnage, '', // D=current, E=cumm, F=used on site, G=temp
+      r.fromStation, r.toStation,                              // H=from, I=to
+      r.length, r.cummLength,                                  // J=length, K=cumm length
+      r.avgWidth, r.area, pull, r.rateKgM2,                   // L=width, M=area, N=pull, O=rate kg/m2
+      r.ratePct ? (r.ratePct / 100) : '',                     // P=rate% as decimal (e.g. 1.0292)
+      r.comment || ''                                          // Q=comment
     ]);
     sheet.getRange(DATA_START, 1, dataRows.length, 17).setValues(dataRows);
 
-    // Number formats
+    // Number formats matching original
     const n = dataRows.length;
-    sheet.getRange(DATA_START, 4, n, 2).setNumberFormat('0.00');   // tonnage
-    sheet.getRange(DATA_START, 7, n, 2).setNumberFormat('0.00');   // lengths
-    sheet.getRange(DATA_START, 9, n, 2).setNumberFormat('0.00');   // stations
-    sheet.getRange(DATA_START, 12, n, 2).setNumberFormat('0.00');  // width, area
-    sheet.getRange(DATA_START, 15, n, 1).setNumberFormat('0.00');  // rate kg/m2
+    sheet.getRange(DATA_START, 4, n, 2).setNumberFormat('0.00');   // D-E tonnage
+    sheet.getRange(DATA_START, 6, n, 1).setNumberFormat('0.00');   // F used on site
+    sheet.getRange(DATA_START, 8, n, 4).setNumberFormat('0.00');   // H-K from/to/length/cumm
+    sheet.getRange(DATA_START, 12, n, 2).setNumberFormat('0.00');  // L-M width/area
+    sheet.getRange(DATA_START, 15, n, 1).setNumberFormat('0.00');  // O rate kg/m2
+    sheet.getRange(DATA_START, 16, n, 1).setNumberFormat('0.00%'); // P rate% as percentage
 
     // Alternating row colors
     for (let i = 0; i < n; i++) {
@@ -429,8 +431,8 @@ function writeToSheet(tabName, data, claudeResult, topLiftTrucks, levelCourseTru
       cumForLC += Number(t.tonnage);
       sheet.getRange(nextRow, 1, 1, 17).setValues([[
         rows.length + i + 1, t.vehicle, t.ticket,
-        Number(t.tonnage), Math.round(cumForLC*100)/100,
-        '', 0, 0, 0, 0, '', 0, 0, pull, 0, '0.00%', 'Level Course'
+        Number(t.tonnage), Math.round(cumForLC*100)/100, Math.round(cumForLC*100)/100,
+        '', 0, 0, 0, 0, 0, 0, pull, 0, 0, 'Level Course'
       ]]);
       sheet.getRange(nextRow, 1, 1, 17).setBackground('#EEF2FF').setFontStyle('italic');
       sheet.getRange(nextRow, 17).setFontColor('#3B82F6').setFontStyle('normal').setFontWeight('bold');
