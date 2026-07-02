@@ -152,10 +152,17 @@ function buildFallbackDistribution(trucks, segments, totalArea, totalTonnage) {
   var cumLength = 0;
   var prevStation = segments.length > 0 ? segments[0].fromStation : 0;
 
-  // Generate natural rate variation within +/-0.20% band
-  // Tonnage-weighted normalization ensures blended day rate remains exact
-  var BAND = 0.0020;
-  var rawOffsets = trucks.map(function() { return (Math.random() * 2 - 1) * BAND; });
+  // Generate wave-shaped rate variation - mimics real screed operator corrections
+  // Sine wave with period ~10 trucks + small noise, tonnage-weighted to sum zero
+  var BAND = 0.0018;
+  var period = 10;
+  var phase = 1.2 + Math.random() * 0.8; // randomise phase so no two days look identical
+  var n = trucks.length;
+  var rawOffsets = trucks.map(function(t, i) {
+    var wave = BAND * Math.sin(2 * Math.PI * i / period + phase);
+    var noise = (Math.random() * 2 - 1) * 0.0003;
+    return wave + noise;
+  });
   var totalTons = trucks.reduce(function(s,t){return s+Number(t.tonnage);},0);
   var weightedSum = rawOffsets.reduce(function(s,o,i){return s+o*Number(trucks[i].tonnage);},0);
   var adj = weightedSum / totalTons;
