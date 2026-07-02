@@ -24,7 +24,7 @@ function doGet(e) {
     if (!raw) return respond({ ok: false, error: 'No data' }, cb);
     const data = JSON.parse(decodeURIComponent(raw));
     if (data.action === 'save_session') return respond(saveSession(data), cb);
-
+    if (data.action === 'save_paving_session') return respond(savePavingSession(data), cb);
     return respond({ ok: false, error: 'Unknown action' }, cb);
   } catch(err) {
     return respond({ ok: false, error: err.toString() }, cb);
@@ -261,4 +261,99 @@ function respond(obj, callback) {
   const body = callback ? callback + '(' + json + ')' : json;
   const mime = callback ? ContentService.MimeType.JAVASCRIPT : ContentService.MimeType.JSON;
   return ContentService.createTextOutput(body).setMimeType(mime);
+}
+
+function savePavingSession(data) {
+  try {
+    const ss = SpreadsheetApp.openById(SHEET_ID);
+    const tabName = data.tabName;
+    let sheet = ss.getSheetByName(tabName);
+    if (sheet) { sheet.clearContents(); sheet.clearFormats(); }
+    else { sheet = ss.insertSheet(tabName); }
+    sheet.setTabColor('#3B82F6'); // Blue for paving tabs
+
+    const s = data.summary;
+    const labelColor = '#999999';
+
+    // ── HEADER (rows 1-4) ─────────────────────────────────────────────────
+    const headerRows = [
+      ['Date', s.date||'', 'Direction', s.direction||'', 'Segment', s.segment||''],
+      ['Start ST', String(s.startStation||''), 'End ST', String(s.endStation||''), 'LKI', s.dirLabel||''],
+      ['Start Time', s.startTime||'', 'End Time', s.endTime||'', 'Status', data.closed?'● Closed':'● Open'],
+      ['Tonnage (t)', String(s.totalTonnage||''), 'Area (m²)', String(s.totalArea||''), 'Trucks', String(s.trucks||'')],
+    ];
+    headerRows.forEach((row, i) => {
+      const r = i + 1;
+      sheet.getRange(r,1).setValue(row[0]).setFontColor(labelColor).setFontSize(9);
+      sheet.getRange(r,2).setValue(row[1]).setFontWeight('bold').setFontSize(11);
+      sheet.getRange(r,3).setValue(row[2]).setFontColor(labelColor).setFontSize(9);
+      sheet.getRange(r,4).setValue(row[3]).setFontWeight('bold').setFontSize(11);
+      sheet.getRange(r,5).setValue(row[4]).setFontColor(labelColor).setFontSize(9);
+      sheet.getRange(r,6).setValue(row[5]).setFontWeight('bold').setFontSize(11);
+    });
+    sheet.getRange(3,6).setFontColor(data.closed?'#999999':'#22C55E');
+    sheet.getRange(1,1,4,6).setBackground('#F0F4FF');
+
+    // ── TRUCK LOG (starts col A, row 6) ───────────────────────────────────
+    const TRUCK_START = 6;
+    const truckHeaders = ['Vehicle','Ticket #','Tonnage (t)','Cumulative (t)','Time'];
+    sheet.getRange(TRUCK_START,1,1,5).setValues([truckHeaders])
+      .setFontWeight('bold').setBackground('#3B82F6').setFontColor('#FFFFFF');
+
+    if (data.truckEntries && data.truckEntries.length > 0) {
+      const trows = data.truckEntries.map(t => {
+        let ts='';
+        try { if(t.timestamp){const d=new Date(t.timestamp);const mo=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];ts=String(d.getDate()).padStart(2,'0')+mo[d.getMonth()]+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}} catch(e){}
+        return [t.vehicle||'', t.ticket||'', Number(t.tonnage)||0, Number(t.cumTonnage)||0, ts];
+      });
+      sheet.getRange(TRUCK_START+1,1,trows.length,5).setValues(trows);
+      sheet.getRange(TRUCK_START+1,3,trows.length,2).setNumberFormat('0.00');
+      sheet.getRange(TRUCK_START+1,5,trows.length,1).setNumberFormat('@STRING@');
+      for(let i=0;i<trows.length;i++) {
+        if(i%2===0) sheet.getRange(TRUCK_START+1+i,1,1,5).setBackground('#F8FAFF');
+      }
+    }
+
+    // ── WIDTH LOG (starts col G, row 6) ───────────────────────────────────
+    const widthHeaders = ['Station','Pave W (m)','Milled W (m)','Length (m)','Seg Area (m²)','Cum Area (m²)','Time'];
+    sheet.getRange(TRUCK_START,7,1,7).setValues([widthHeaders])
+      .setFontWeight('bold').setBackground('#3B82F6').setFontColor('#FFFFFF');
+
+    if (data.widthEntries && data.widthEntries.length > 0) {
+      const wrows = data.widthEntries.map(w => {
+        let ts='';
+        try { if(w.timestamp){const d=new Date(w.timestamp);const mo=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];ts=String(d.getDate()).padStart(2,'0')+mo[d.getMonth()]+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}} catch(e){}
+        return [Number(w.station)||0, Number(w.width)||0, w.milledWidth||'', Number(w.length)||0, Number(w.segArea)||0, Number(w.cumArea)||0, ts];
+      });
+      sheet.getRange(TRUCK_START+1,7,wrows.length,7).setValues(wrows);
+      sheet.getRange(TRUCK_START+1,7,wrows.length,6).setNumberFormat('0.00');
+      sheet.getRange(TRUCK_START+1,13,wrows.length,1).setNumberFormat('@STRING@');
+      for(let i=0;i<wrows.length;i++) {
+        if(i%2===0) sheet.getRange(TRUCK_START+1+i,7,1,7).setBackground('#F8FAFF');
+      }
+    }
+
+    // ── RATE ESTIMATES (starts col A after truck log) ─────────────────────
+    const truckEnd = TRUCK_START + 1 + (data.truckEntries?.length||0) + 2;
+    if (data.rateEstimates && data.rateEstimates.length > 0) {
+      sheet.getRange(truckEnd,1).setValue('Rate Estimates').setFontWeight('bold').setFontColor('#999999').setFontSize(9);
+      const estHeaders = ['Time','To Station','Width (m)','Est. Area (m²)','Rate (%)'];
+      sheet.getRange(truckEnd+1,1,1,5).setValues([estHeaders]).setFontWeight('bold').setBackground('#F59E0B').setFontColor('#111');
+      const erows = data.rateEstimates.map(r => {
+        let ts='';
+        try{if(r.ts){const d=new Date(r.ts);const mo=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];ts=String(d.getDate()).padStart(2,'0')+mo[d.getMonth()]+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}}catch(e){}
+        return [ts, r.station, r.width, r.area, r.rate];
+      });
+      sheet.getRange(truckEnd+2,1,erows.length,5).setValues(erows);
+      sheet.getRange(truckEnd+2,4,erows.length,2).setNumberFormat('0.00');
+    }
+
+    // ── COLUMN WIDTHS ─────────────────────────────────────────────────────
+    [60,70,90,90,95,5,80,80,80,75,90,95,95].forEach((w,i)=>sheet.setColumnWidth(i+1,w));
+    sheet.setFrozenRows(TRUCK_START);
+
+    return { ok: true, tabName, trucks: (data.truckEntries||[]).length, widths: (data.widthEntries||[]).length };
+  } catch(err) {
+    return { ok: false, error: 'savePavingSession: ' + err.toString() };
+  }
 }
