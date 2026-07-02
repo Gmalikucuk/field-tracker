@@ -408,3 +408,10 @@ function ocrTicket(base64img) {
     return { ok: false, error: 'ocrTicket: ' + err.toString() };
   }
 }
+
+function setApiKey() {
+  // Run once from Apps Script editor to store the Claude API key
+  // Replace YOUR-KEY-HERE with the actual key, run, then delete the key
+  PropertiesService.getScriptProperties().setProperty('CLAUDE_API_KEY', 'YOUR-KEY-HERE');
+  Logger.log('API key stored.');
+}
