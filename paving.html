@@ -245,6 +245,23 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:system-
 
 <div class="toast" id="toast"></div>
 
+<!-- SPLIT TICKET MODAL -->
+<div class="overlay" id="split-modal">
+  <div class="modal">
+    <h3>Split Ticket</h3>
+    <div id="split-info" style="background:var(--surface2);border-radius:10px;padding:12px;margin-bottom:16px;font-size:14px"></div>
+    <div class="mb">
+      <span class="lbl">Tonnes to Level Course</span>
+      <input class="inp" id="split-lc-ton" type="number" inputmode="decimal" step="0.01" placeholder="e.g. 6.26">
+      <div style="font-size:12px;color:var(--muted);margin-top:4px" id="split-remainder"></div>
+    </div>
+    <div class="mbtns">
+      <button class="btn btn-accent" id="split-confirm-btn" onclick="confirmSplit()">Confirm Split</button>
+      <button class="btn btn-ghost" onclick="document.getElementById('split-modal').classList.remove('on')">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const params = new URLSearchParams(window.location.search);
 const SCRIPT_URL = params.get('scriptUrl') || 'https://script.google.com/macros/s/AKfycbyNt3aXqMoTxlPgzWptIOW2ehgT4pHZ8FInMFkYNZQC9hMP_AHr_HiROluL4m2p2seV/exec';
@@ -782,6 +799,68 @@ if(paveSess) {
 refreshDash();
 renderWidthLog();
 renderTruckLog();
+function openSplitModal(idx) {
+  splitTruckIdx = idx;
+  var t = truckRows[idx];
+  document.getElementById('split-info').innerHTML =
+    '<strong>V' + t.vehicle + ' &mdash; Ticket ' + t.ticket + '</strong><br>' +
+    'Current tonnage: <strong>' + t.tonnage.toFixed(2) + ' t</strong> (top lift)';
+  document.getElementById('split-lc-ton').value = '';
+  document.getElementById('split-remainder').textContent = '';
+  document.getElementById('split-lc-ton').oninput = function() {
+    var lcTon = parseFloat(this.value);
+    if (!isNaN(lcTon) && lcTon > 0 && lcTon < t.tonnage) {
+      var rem = round2(t.tonnage - lcTon);
+      document.getElementById('split-remainder').textContent =
+        rem.toFixed(2) + ' t stays in top lift, ' + lcTon.toFixed(2) + ' t goes to level course';
+    } else {
+      document.getElementById('split-remainder').textContent = '';
+    }
+  };
+  document.getElementById('split-modal').classList.add('on');
+}
+
+function confirmSplit() {
+  var t = truckRows[splitTruckIdx];
+  var lcTon = parseFloat(document.getElementById('split-lc-ton').value);
+  if (isNaN(lcTon) || lcTon <= 0) { showToast('Enter tonnage for level course'); return; }
+  if (lcTon >= t.tonnage) { showToast('Split must be less than total tonnage'); return; }
+
+  var pavingTon = round2(t.tonnage - lcTon);
+
+  // Update paving truck
+  truckRows[splitTruckIdx].tonnage = pavingTon;
+  truckRows[splitTruckIdx].split = true;
+  truckRows[splitTruckIdx].splitLCTon = lcTon;
+
+  // Recalculate cumulative tonnages for paving
+  var cum = 0;
+  for (var i = 0; i < truckRows.length; i++) {
+    cum = round2(cum + truckRows[i].tonnage);
+    truckRows[i].cumTonnage = cum;
+  }
+
+  // Store split in localStorage for LC screen to pick up
+  var splits = [];
+  try { splits = JSON.parse(localStorage.getItem('pv_splits') || '[]'); } catch(e) {}
+  splits.push({
+    vehicle: t.vehicle,
+    ticket: t.ticket,
+    tonnage: lcTon,
+    cumTonnage: 0, // LC will recalculate
+    ts: new Date().toISOString(),
+    fromPaving: true,
+    date: paveSess ? paveSess.date : ''
+  });
+  localStorage.setItem('pv_splits', JSON.stringify(splits));
+
+  persist();
+  document.getElementById('split-modal').classList.remove('on');
+  renderTruckLog();
+  refreshDash();
+  showToast('Split: ' + pavingTon.toFixed(2) + 't top lift / ' + lcTon.toFixed(2) + 't level course');
+}
+
 </script>
 </body>
 </html>
