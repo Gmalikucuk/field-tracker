@@ -333,6 +333,28 @@ async function endLCSession() {
   persist();
   var ok = await lcSync(true);
   if (ok) {
+    // Save summary for End of Day calculation
+    var wLast = widthRows.length > 0 ? widthRows[widthRows.length-1] : null;
+    var tLast = truckRows.length > 0 ? truckRows[truckRows.length-1] : null;
+    var dayRecord = {
+      activity: 'levelcourse',
+      date: lcSess ? lcSess.date : '',
+      seg: lcSess ? lcSess.segName : '',
+      dir: lcSess ? lcSess.dir : '',
+      dirLabel: lcSess ? lcSess.dirLabel : '',
+      startSt: lcSess ? lcSess.startSt : 0,
+      endSt: wLast ? wLast.station : 0,
+      area: wLast ? wLast.cum : 0,
+      tonnage: tLast ? tLast.cumTonnage : 0,
+      trucks: truckRows.length,
+      closedAt: new Date().toISOString()
+    };
+    var dayRecords = [];
+    try { dayRecords = JSON.parse(localStorage.getItem('eod_records') || '[]'); } catch(e) {}
+    dayRecords = dayRecords.filter(function(r){ return !(r.activity==='levelcourse' && r.date===dayRecord.date); });
+    dayRecords.push(dayRecord);
+    localStorage.setItem('eod_records', JSON.stringify(dayRecords));
+
     localStorage.removeItem('lc_sess');
     localStorage.removeItem('lc_w');
     localStorage.removeItem('lc_t');
