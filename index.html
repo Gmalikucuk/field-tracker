@@ -341,8 +341,9 @@ function goHome() { show('pg-home'); }
 function goActivity(activity) {
   currentActivity = activity;
   if (activity === 'levelcourse') {
-    // Go straight to LC setup for today — reads from LC Sheet
-    openLCSession(todayStr(), 'S2', 'NB', 'Hwy 1 NBL', 0);
+    document.getElementById('dl-title').textContent = 'Level Course Sessions';
+    show('pg-dates');
+    loadDateList();
     return;
   }
   document.getElementById('dl-title').textContent =
@@ -396,7 +397,8 @@ async function loadDateList() {
   const list = document.getElementById('date-list');
   list.innerHTML = '<div class="loading-msg">Loading sessions…</div>';
   const today = todayStr();
-  const activeScriptUrl = currentActivity === 'paving' ? PAVING_SCRIPT_URL : SCRIPT_URL;
+  const activeScriptUrl = currentActivity === 'paving' ? PAVING_SCRIPT_URL :
+    currentActivity === 'levelcourse' ? LC_SCRIPT_URL : SCRIPT_URL;
   const todayTab = tabFromDate(today);
 
   // Try to load from Sheets
@@ -1102,7 +1104,10 @@ restore();
 // Check if returning from paving screen
 const _urlParams = new URLSearchParams(window.location.search);
 if (_urlParams.get('activity') === 'levelcourse') {
-  openLCSession(todayStr(), 'S2', 'NB', 'Hwy 1 NBL', 0);
+  currentActivity = 'levelcourse';
+  document.getElementById('dl-title').textContent = 'Level Course Sessions';
+  show('pg-dates');
+  loadDateList();
 } else if (_urlParams.get('activity') === 'paving') {
   currentActivity = 'paving';
   document.getElementById('dl-title').textContent = 'Paving Sessions';
