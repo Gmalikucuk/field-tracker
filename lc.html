@@ -295,8 +295,9 @@ function renderTruckLog() {
   var html = '';
   for (var i = truckRows.length-1; i >= 0; i--) {
     var r = truckRows[i];
+    var splitBadge = r.fromSplit ? '<span style="font-size:10px;background:var(--accent);color:#111;border-radius:6px;padding:2px 6px;margin-left:6px">split</span>' : '';
     html += '<div class="tli">' +
-      '<div class="tli-top"><span class="tli-veh">V' + r.vehicle + '</span><span class="tli-ton">' + r.tonnage.toFixed(2) + ' t</span></div>' +
+      '<div class="tli-top"><span class="tli-veh">V' + r.vehicle + splitBadge + '</span><span class="tli-ton">' + r.tonnage.toFixed(2) + ' t</span></div>' +
       '<div class="tli-sub">Ticket ' + r.ticket + ' &#183; Cumm: ' + r.cumTonnage.toFixed(2) + ' t</div>' +
       '</div>';
   }
@@ -430,6 +431,24 @@ function jsonpCall(url, ms) {
     };
     persist();
   }
+
+  // Pick up any splits from paving screen
+  try {
+    var splits = JSON.parse(localStorage.getItem('pv_splits') || '[]');
+    if (splits.length > 0) {
+      splits.forEach(function(s) {
+        var cum = truckRows.length > 0 ? truckRows[truckRows.length-1].cumTonnage : 0;
+        truckRows.push({
+          vehicle: s.vehicle, ticket: s.ticket,
+          tonnage: s.tonnage, cumTonnage: round2(cum + s.tonnage),
+          ts: s.ts, fromSplit: true
+        });
+      });
+      localStorage.removeItem('pv_splits');
+      persist();
+      showToast(splits.length + ' split ticket(s) imported from paving');
+    }
+  } catch(e) {}
 
   if (lcSess) {
     document.getElementById('lc-title').textContent = lcSess.segName + ' &#183; ' + lcSess.dirLabel;
