@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Level Course</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:rgba(34,197,94,.15)}
+:root{--bg:#111;--surface:#1C1C1C;--surface2:#242424;--border:#2A2A2A;--text:#F3F3F3;--muted:#6B7280;--accent:#F59E0B;--ok:#22C55E;--danger:#EF4444;--lc:#22C55E}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;height:100dvh;display:flex;flex-direction:column;overflow:hidden}
+
+/* TOOLBAR */
+.toolbar{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.back{background:none;border:none;color:var(--lc);font-size:15px;font-weight:700;cursor:pointer;padding:4px 0}
+.tb-info{flex:1}
+.tb-title{font-size:17px;font-weight:800}
+.tb-sub{font-size:12px;color:var(--muted);margin-top:1px}
+.synbtn{height:50px;background:var(--lc);border:none;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#111;padding:0 12px;gap:2px;min-width:60px}
+.synbtn.ok{background:var(--ok);color:#fff}
+.synbtn.err{background:var(--danger);color:#fff}
+.sync-icon{font-size:18px;line-height:1}
+.sync-time{font-size:9px;opacity:.8;white-space:nowrap}
+
+/* DASHBOARD */
+.dash{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid var(--border);flex-shrink:0}
+.dash-cell{padding:10px 4px;text-align:center;border-right:1px solid var(--border)}
+.dash-cell:last-child{border-right:none}
+.dash-val{font-size:18px;font-weight:800;color:var(--text)}
+.dash-val.hi{color:var(--lc)}
+.dash-lbl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-top:2px}
+
+/* SCROLL */
+.scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+
+/* SECTION HEADERS */
+.sec-hdr{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;background:var(--surface2);border-bottom:1px solid var(--border);cursor:pointer}
+.sec-title{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.sec-lbl{font-size:12px;color:var(--lc);font-weight:600}
+
+/* FORM */
+.section-body{padding:16px}
+.erow{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ef{display:flex;flex-direction:column;gap:6px}
+.el{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.ei{background:var(--surface2);border:1.5px solid var(--border);border-radius:12px;padding:14px;color:var(--text);font-size:18px;font-weight:600;width:100%;outline:none}
+.ei:focus{border-color:var(--lc)}
+.mb{margin-bottom:12px}
+.btn{border:none;border-radius:14px;padding:0 20px;font-size:15px;font-weight:800;cursor:pointer;height:52px;width:100%}
+.btn-accent{background:var(--lc);color:#111;margin-top:4px}
+.btn-ghost{background:var(--surface2);color:var(--muted);margin-top:8px}
+
+/* LOG */
+.log-empty{text-align:center;color:var(--muted);padding:24px;font-size:14px}
+.wli{background:var(--surface);border-radius:10px;padding:12px 14px;margin:0 16px 8px;border:1px solid var(--border)}
+.wli-top{display:flex;justify-content:space-between;align-items:baseline}
+.wli-st{font-size:16px;font-weight:800}
+.wli-w{font-size:15px;font-weight:700;color:var(--lc)}
+.wli-b{display:flex;gap:16px;margin-top:4px;font-size:12px;color:var(--muted)}
+.tli{background:var(--surface);border-radius:10px;padding:12px 14px;margin:0 16px 8px;border:1px solid var(--border)}
+.tli-top{display:flex;justify-content:space-between;align-items:center}
+.tli-veh{font-size:18px;font-weight:800}
+.tli-ton{font-size:16px;font-weight:700;color:var(--lc)}
+.tli-sub{font-size:12px;color:var(--muted);margin-top:3px}
+
+/* END SESSION */
+.endbtn{background:var(--surface2);border:1.5px solid var(--border);border-radius:14px;height:52px;color:var(--text);font-size:15px;font-weight:700;cursor:pointer;width:100%}
+.bottom-bar{padding:12px 16px;background:var(--surface);border-top:1px solid var(--border);flex-shrink:0;display:flex;gap:10px}
+
+/* MODAL */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:100;align-items:flex-end}
+.overlay.on{display:flex}
+.modal{background:var(--surface);border-radius:20px 20px 0 0;padding:24px 20px 40px;width:100%}
+.modal h3{font-size:18px;font-weight:800;margin-bottom:16px}
+.modal-stat{display:flex;justify-content:space-between;padding:5px 0;font-size:14px}
+.modal-stat span:last-child{font-weight:700}
+.modal-divider{border:none;border-top:1px solid var(--border);margin:12px 0}
+.lbl{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:6px}
+.inp{background:var(--surface2);border:1.5px solid var(--border);border-radius:12px;padding:14px;color:var(--text);font-size:18px;width:100%;outline:none;margin-bottom:16px}
+.mbtns{display:flex;flex-direction:column;gap:8px}
+.spinning{display:inline-block;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:10px 20px;border-radius:20px;font-size:14px;z-index:200;opacity:0;transition:opacity .3s;pointer-events:none}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <button class="back" onclick="window.location.href='index.html?activity=levelcourse'">&larr; Sessions</button>
+  <div class="tb-info">
+    <div class="tb-title" id="lc-title">Level Course</div>
+    <div class="tb-sub" id="lc-sub">&mdash;</div>
+  </div>
+  <button class="synbtn" id="lc-synbtn" onclick="lcSync()">
+    <span class="sync-icon">C</span>
+    <span class="sync-time" id="lc-sync-time">Sync</span>
+  </button>
+</div>
+
+<div class="dash">
+  <div class="dash-cell"><div class="dash-val hi" id="ds-trucks">0</div><div class="dash-lbl">Trucks</div></div>
+  <div class="dash-cell"><div class="dash-val hi" id="ds-tonnes">0.00</div><div class="dash-lbl">Tonnes</div></div>
+  <div class="dash-cell"><div class="dash-val" id="ds-area">&mdash;</div><div class="dash-lbl">Area m2</div></div>
+  <div class="dash-cell"><div class="dash-val" id="ds-rate">&mdash;</div><div class="dash-lbl">App Rate</div></div>
+</div>
+
+<div class="scroll" id="scroll">
+
+  <!-- WIDTH READINGS -->
+  <div class="sec-hdr" onclick="(function(){lcState.width=!lcState.width;document.getElementById('lc-width-body').style.display=lcState.width?'block':'none';document.getElementById('lc-width-lbl').textContent=lcState.width?'Hide':'Show'})()">
+    <span class="sec-title"> Width Readings</span>
+    <span class="sec-lbl" id="lc-width-lbl">Hide</span>
+  </div>
+  <div id="lc-width-body" style="display:block">
+    <div class="section-body">
+      <div class="erow mb">
+        <div class="ef">
+          <span class="el">Station</span>
+          <input class="ei" id="lc-st" type="number" inputmode="numeric" placeholder="680">
+        </div>
+        <div class="ef">
+          <span class="el">Width (m)</span>
+          <input class="ei" id="lc-w" type="number" inputmode="decimal" step="0.01" placeholder="4.0">
+        </div>
+      </div>
+      <button class="btn btn-accent" onclick="addWidth()">Save Width Reading</button>
+    </div>
+    <div id="lc-width-log"><div class="log-empty">No width readings yet</div></div>
+  </div>
+
+  <!-- TRUCK LOG -->
+  <div class="sec-hdr" onclick="(function(){lcState.truck=!lcState.truck;document.getElementById('lc-truck-body').style.display=lcState.truck?'block':'none';document.getElementById('lc-truck-lbl').textContent=lcState.truck?'Hide':'Show'})()">
+    <span class="sec-title"> Truck Log</span>
+    <span class="sec-lbl" id="lc-truck-lbl">Hide</span>
+  </div>
+  <div id="lc-truck-body" style="display:block">
+    <div class="section-body">
+      <div class="erow mb">
+        <div class="ef">
+          <span class="el">Vehicle</span>
+          <input class="ei" id="lc-veh" type="text" inputmode="numeric" placeholder="48">
+        </div>
+        <div class="ef">
+          <span class="el">Ticket #</span>
+          <input class="ei" id="lc-tkt" type="text" inputmode="numeric" placeholder="20253536" style="font-size:15px">
+        </div>
+      </div>
+      <div class="mb">
+        <span class="el">Net Tonnes</span>
+        <input class="ei" id="lc-ton" type="number" inputmode="decimal" step="0.01" placeholder="14.26" style="width:100%">
+      </div>
+      <button class="btn btn-accent" onclick="addTruck()">Add Truck</button>
+    </div>
+    <div id="lc-truck-log"><div class="log-empty">No trucks logged yet</div></div>
+  </div>
+
+</div>
+
+<div class="bottom-bar">
+  <button class="endbtn" onclick="openEndModal()">End Session</button>
+</div>
+
+<!-- END SESSION MODAL -->
+<div class="overlay" id="lc-modal">
+  <div class="modal">
+    <h3>End Level Course Session</h3>
+    <div class="modal-stat"><span style="color:var(--muted)">Trucks</span><span id="lm-trucks">&mdash;</span></div>
+    <div class="modal-stat"><span style="color:var(--muted)">Total Tonnage</span><span id="lm-tonnage">&mdash;</span></div>
+    <div class="modal-stat"><span style="color:var(--muted)">Width Readings</span><span id="lm-readings">&mdash;</span></div>
+    <div class="modal-stat"><span style="color:var(--muted)">Total Area</span><span id="lm-area">&mdash;</span></div>
+    <hr class="modal-divider">
+    <div class="modal-stat"><span style="font-weight:700">Application Rate</span><span style="font-size:16px;font-weight:800" id="lm-rate">&mdash;</span></div>
+    <hr class="modal-divider">
+    <div class="mb">
+      <span class="lbl">End Time</span>
+      <input class="inp" id="lc-endtime" type="time">
+    </div>
+    <div class="mbtns">
+      <button class="btn btn-accent" onclick="endLCSession()" style="background:var(--lc);color:#111">Save & End Session</button>
+      <button class="btn btn-ghost" onclick="document.getElementById('lc-modal').classList.remove('on')">Review Entries</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const params = new URLSearchParams(window.location.search);
+const SCRIPT_URL = params.get('scriptUrl') || 'LC_SCRIPT_URL_PLACEHOLDER';
+const TARGET_RATE = 124.35; // for reporting only &mdash; no band warning for LC
+
+var lcState = { width: true, truck: true };
+var lcSess = null;
+var widthRows = [];
+var truckRows = [];
+
+function persist() {
+  try {
+    localStorage.setItem('lc_sess', JSON.stringify(lcSess));
+    localStorage.setItem('lc_w', JSON.stringify(widthRows));
+    localStorage.setItem('lc_t', JSON.stringify(truckRows));
+  } catch(e) {}
+}
+
+function round2(n){ return Math.round(n*100)/100; }
+
+function showToast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(function(){ t.classList.remove('show'); }, 2500);
+}
+
+function refreshDash() {
+  var n = truckRows.length;
+  var ton = n > 0 ? truckRows[n-1].cumTonnage : 0;
+  var wn = widthRows.length;
+  var area = wn > 0 ? widthRows[wn-1].cum : 0;
+  var rate = area > 0 ? round2(ton * 1000 / area) : 0;
+  var ratePct = rate > 0 ? round2(rate / TARGET_RATE * 100) : 0;
+
+  document.getElementById('ds-trucks').textContent = n;
+  document.getElementById('ds-tonnes').textContent = ton.toFixed(2);
+  document.getElementById('ds-area').textContent = area > 0 ? area.toFixed(2) : '&mdash;';
+  document.getElementById('ds-rate').textContent = ratePct > 0 ? ratePct.toFixed(1)+'%' : '&mdash;';
+}
+
+// WIDTH READINGS
+function addWidth() {
+  var st = parseFloat(document.getElementById('lc-st').value);
+  var w  = parseFloat(document.getElementById('lc-w').value);
+  if (isNaN(st)) { showToast('Enter a station'); return; }
+  if (isNaN(w) || w <= 0) { showToast('Enter a width'); return; }
+
+  var len = 0, segArea = 0, cum = 0;
+  if (widthRows.length > 0) {
+    var prev = widthRows[widthRows.length-1];
+    len = round2(Math.abs(st - prev.station));
+    segArea = round2((prev.width + w) / 2 * len);
+    cum = round2(prev.cum + segArea);
+  }
+
+  widthRows.push({ station:st, width:w, length:len, seg:segArea, cum:cum, ts:new Date().toISOString() });
+  persist();
+  document.getElementById('lc-st').value = '';
+  document.getElementById('lc-w').value = '';
+  document.getElementById('lc-st').focus();
+  renderWidthLog();
+  refreshDash();
+}
+
+function renderWidthLog() {
+  var el = document.getElementById('lc-width-log');
+  if (widthRows.length === 0) { el.innerHTML = '<div class="log-empty">No width readings yet</div>'; return; }
+  var html = '';
+  for (var i = widthRows.length-1; i >= 0; i--) {
+    var r = widthRows[i];
+    html += '<div class="wli">' +
+      '<div class="wli-top"><span class="wli-st">ST ' + r.station + '</span><span class="wli-w">' + r.width.toFixed(2) + ' m</span></div>' +
+      '<div class="wli-b">' +
+        (r.length > 0 ? '<span>Len: ' + r.length.toFixed(0) + 'm</span>' : '') +
+        (r.seg > 0 ? '<span>Seg: ' + r.seg.toFixed(2) + ' m2</span>' : '') +
+        '<span>Cum: ' + r.cum.toFixed(2) + ' m2</span>' +
+      '</div></div>';
+  }
+  el.innerHTML = html;
+}
+
+// TRUCK LOG
+function addTruck() {
+  var veh = document.getElementById('lc-veh').value.trim();
+  var tkt = document.getElementById('lc-tkt').value.trim();
+  var ton = parseFloat(document.getElementById('lc-ton').value);
+  if (!veh) { showToast('Enter vehicle number'); return; }
+  if (!tkt) { showToast('Enter ticket number'); return; }
+  if (isNaN(ton) || ton <= 0) { showToast('Enter tonnage'); return; }
+
+  var prev = truckRows.length > 0 ? truckRows[truckRows.length-1].cumTonnage : 0;
+  var cum = round2(prev + ton);
+  truckRows.push({ vehicle:veh, ticket:tkt, tonnage:ton, cumTonnage:cum, ts:new Date().toISOString() });
+  persist();
+  document.getElementById('lc-veh').value = '';
+  document.getElementById('lc-tkt').value = '';
+  document.getElementById('lc-ton').value = '';
+  document.getElementById('lc-veh').focus();
+  renderTruckLog();
+  refreshDash();
+}
+
+function renderTruckLog() {
+  var el = document.getElementById('lc-truck-log');
+  if (truckRows.length === 0) { el.innerHTML = '<div class="log-empty">No trucks logged yet</div>'; return; }
+  var html = '';
+  for (var i = truckRows.length-1; i >= 0; i--) {
+    var r = truckRows[i];
+    html += '<div class="tli">' +
+      '<div class="tli-top"><span class="tli-veh">V' + r.vehicle + '</span><span class="tli-ton">' + r.tonnage.toFixed(2) + ' t</span></div>' +
+      '<div class="tli-sub">Ticket ' + r.ticket + ' &#183; Cumm: ' + r.cumTonnage.toFixed(2) + ' t</div>' +
+      '</div>';
+  }
+  el.innerHTML = html;
+}
+
+// END SESSION
+function openEndModal() {
+  if (truckRows.length === 0 && widthRows.length === 0) { showToast('No data yet'); return; }
+  var n = truckRows.length;
+  var ton = n > 0 ? truckRows[n-1].cumTonnage : 0;
+  var wn = widthRows.length;
+  var area = wn > 0 ? widthRows[wn-1].cum : 0;
+  var rate = area > 0 ? round2(ton * 1000 / area) : 0;
+  var ratePct = rate > 0 ? round2(rate / TARGET_RATE * 100) : 0;
+
+  document.getElementById('lm-trucks').textContent = n;
+  document.getElementById('lm-tonnage').textContent = ton.toFixed(2) + ' t';
+  document.getElementById('lm-readings').textContent = wn;
+  document.getElementById('lm-area').textContent = area > 0 ? area.toFixed(2) + ' m2' : '&mdash;';
+  document.getElementById('lm-rate').textContent = ratePct > 0 ? ratePct.toFixed(2) + '%' : '&mdash;';
+
+  var now = new Date();
+  document.getElementById('lc-endtime').value =
+    String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+  document.getElementById('lc-modal').classList.add('on');
+}
+
+async function endLCSession() {
+  document.getElementById('lc-modal').classList.remove('on');
+  var endTime = document.getElementById('lc-endtime').value;
+  if (lcSess) { lcSess.endTime = endTime; lcSess.closed = true; }
+  persist();
+  var ok = await lcSync(true);
+  if (ok) {
+    localStorage.removeItem('lc_sess');
+    localStorage.removeItem('lc_w');
+    localStorage.removeItem('lc_t');
+    window.location.href = 'index.html?activity=levelcourse';
+  }
+}
+
+// SYNC
+async function lcSync(closing) {
+  var btn = document.getElementById('lc-synbtn');
+  btn.innerHTML = '<span class="sync-icon"><span class="spinning">~</span></span><span class="sync-time">Syncing</span>';
+  btn.className = 'synbtn';
+
+  if (!lcSess) { showToast('No active session'); return false; }
+
+  var n = truckRows.length;
+  var ton = n > 0 ? truckRows[n-1].cumTonnage : 0;
+  var area = widthRows.length > 0 ? widthRows[widthRows.length-1].cum : 0;
+
+  var payload = {
+    action: 'save_lc_session',
+    tabName: lcSess.tab,
+    closed: closing || lcSess.closed || false,
+    summary: {
+      date: lcSess.date, direction: lcSess.dir, segment: lcSess.segName,
+      startStation: lcSess.startSt, endStation: widthRows.length > 0 ? widthRows[widthRows.length-1].station : lcSess.startSt,
+      dirLabel: lcSess.dirLabel, startTime: lcSess.startTime,
+      endTime: lcSess.endTime || '', totalTonnage: ton, totalArea: area, trucks: n
+    },
+    truckEntries: truckRows,
+    widthEntries: widthRows.map(function(r){ return { station:r.station, width:r.width, length:r.length, segArea:r.seg, cumArea:r.cum, timestamp:r.ts }; })
+  };
+
+  try {
+    var encoded = encodeURIComponent(JSON.stringify(payload));
+    var result = await jsonpCall(SCRIPT_URL + '?data=' + encoded, 20000);
+    if (result.ok) {
+      var now = new Date();
+      var t = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+      btn.innerHTML = '<span class="sync-icon">v</span><span class="sync-time">' + t + '</span>';
+      btn.className = 'synbtn ok';
+      showToast('Synced v');
+      setTimeout(function(){
+        btn.innerHTML = '<span class="sync-icon">C</span><span class="sync-time">' + t + '</span>';
+        btn.className = 'synbtn';
+      }, 3000);
+      return true;
+    } else {
+      btn.innerHTML = '<span class="sync-icon">x</span><span class="sync-time">Failed</span>';
+      btn.className = 'synbtn err';
+      showToast('Sync error: ' + (result.error||'unknown'));
+      setTimeout(function(){ btn.innerHTML='<span class="sync-icon">C</span><span class="sync-time">Sync</span>'; btn.className='synbtn'; }, 5000);
+      return false;
+    }
+  } catch(e) {
+    btn.innerHTML = '<span class="sync-icon">x</span><span class="sync-time">No signal</span>';
+    btn.className = 'synbtn err';
+    showToast('No connection');
+    setTimeout(function(){ btn.innerHTML='<span class="sync-icon">C</span><span class="sync-time">Sync</span>'; btn.className='synbtn'; }, 4000);
+    return false;
+  }
+}
+
+function jsonpCall(url, ms) {
+  return new Promise(function(resolve) {
+    var cb = 'lc_cb_' + Date.now();
+    var timer = setTimeout(function(){ cleanup(); resolve({ok:false,error:'timeout'}); }, ms||15000);
+    window[cb] = function(r){ cleanup(); resolve(r||{ok:false,error:'empty'}); };
+    function cleanup(){ clearTimeout(timer); delete window[cb]; var el=document.getElementById('_lcjsc'); if(el) el.remove(); }
+    var s = document.createElement('script');
+    s.id = '_lcjsc';
+    s.onerror = function(){ cleanup(); resolve({ok:false,error:'script load failed'}); };
+    s.src = url + (url.includes('?')?'&':'?') + 'callback=' + cb;
+    document.head.appendChild(s);
+  });
+}
+
+// INIT
+(function() {
+  try { lcSess = JSON.parse(localStorage.getItem('lc_sess')); } catch(e) {}
+  try { widthRows = JSON.parse(localStorage.getItem('lc_w')) || []; } catch(e) {}
+  try { truckRows = JSON.parse(localStorage.getItem('lc_t')) || []; } catch(e) {}
+
+  if (params.get('date') && !lcSess) {
+    lcSess = {
+      tab: 'FT-' + (params.get('date')||'').replace(/\s+/g,''),
+      date: params.get('date') || '',
+      segId: params.get('seg') || 'S2',
+      segName: params.get('segName') || 'Segment 2',
+      dir: params.get('dir') || 'NB',
+      dirLabel: params.get('dirLabel') || 'Hwy 1 NBL',
+      startSt: parseFloat(params.get('startSt')) || 0,
+      startTime: params.get('startTime') || '',
+      endTime: '',
+      closed: false
+    };
+    persist();
+  }
+
+  if (lcSess) {
+    document.getElementById('lc-title').textContent = lcSess.segName + ' &#183; ' + lcSess.dirLabel;
+    document.getElementById('lc-sub').textContent = lcSess.date + ' &#183; Level Course';
+  }
+
+  renderWidthLog();
+  renderTruckLog();
+  refreshDash();
+})();
+</script>
+</body>
+</html>
