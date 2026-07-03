@@ -105,9 +105,11 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:system-
 /* Bottom bar */
 .bot{display:flex;gap:10px;padding:12px 16px;border-top:1px solid var(--border);flex-shrink:0;background:var(--bg)}
 .endbtn{flex:1;height:50px;background:transparent;border:1.5px solid var(--border);border-radius:12px;color:var(--muted);font-size:15px;font-weight:700;cursor:pointer}
-.synbtn{width:50px;height:50px;background:var(--surface2);border:1.5px solid var(--border);border-radius:12px;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center}
-.synbtn.ok{border-color:var(--ok);color:var(--ok)}
-.synbtn.err{border-color:var(--danger);color:var(--danger)}
+.synbtn{height:50px;background:var(--accent);border:none;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#111;padding:0 12px;gap:2px;min-width:60px}
+.synbtn.ok{background:var(--ok);color:#fff}
+.synbtn.err{background:var(--danger);color:#fff}
+.synbtn .sync-icon{font-size:18px;line-height:1}
+.synbtn .sync-time{font-size:9px;opacity:.8;letter-spacing:.02em;white-space:nowrap}
 @keyframes spin{to{transform:rotate(360deg)}}
 .spinning{animation:spin .8s linear infinite;display:inline-block}
 
@@ -209,7 +211,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:system-
 
   <div class="bot">
     <button class="endbtn" onclick="openEndModal()">End Session</button>
-    <button class="synbtn" id="pave-synbtn" onclick="paveSync()">☁</button>
+    <button class="synbtn" id="pave-synbtn" onclick="paveSync()">
+      <span class="sync-icon">☁</span>
+      <span class="sync-time" id="pave-sync-time">Sync</span>
+    </button>
   </div>
 </div>
 
@@ -653,10 +658,10 @@ function jsonpCall(url,ms){
 
 async function paveSync(closing=false) {
   const btn=document.getElementById('pave-synbtn');
-  btn.innerHTML='<span class="spinning">↻</span>'; btn.className='synbtn';
+  btn.innerHTML='<span class="sync-icon"><span class="spinning">↻</span></span><span class="sync-time">Syncing</span>'; btn.className='synbtn';
 
   const ping=await jsonpCall(SCRIPT_URL+'?ping=1',8000);
-  if(!ping.ok){btn.textContent='✕';btn.className='synbtn err';showToast('No connection');setTimeout(()=>{btn.textContent='☁';btn.className='synbtn';},4000);return false;}
+  if(!ping.ok){btn.innerHTML='<span class="sync-icon">✕</span><span class="sync-time">No signal</span>';btn.className='synbtn err';showToast('No connection');setTimeout(()=>{btn.innerHTML='<span class="sync-icon">☁</span><span class="sync-time">Sync</span>';btn.className='synbtn';},4000);return false;}
 
   const wLast=widthRows.length>0?widthRows[widthRows.length-1]:null;
   const tLast=truckRows.length>0?truckRows[truckRows.length-1]:null;
@@ -686,14 +691,17 @@ async function paveSync(closing=false) {
 
   const result=await jsonpCall(SCRIPT_URL+'?data='+encodeURIComponent(JSON.stringify(payload)));
   if(result.ok){
-    btn.textContent='✓';btn.className='synbtn ok';
+    const now=new Date();
+    const t=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+    btn.innerHTML='<span class="sync-icon">✓</span><span class="sync-time">'+t+'</span>';
+    btn.className='synbtn ok';
     showToast('Synced ✓');
-    setTimeout(()=>{btn.textContent='☁';btn.className='synbtn';},3000);
+    setTimeout(()=>{btn.innerHTML='<span class="sync-icon">☁</span><span class="sync-time" id="pave-sync-time">'+t+'</span>';btn.className='synbtn';},3000);
     return true;
   } else {
-    btn.textContent='✕';btn.className='synbtn err';
+    btn.innerHTML='<span class="sync-icon">✕</span><span class="sync-time">Failed</span>';btn.className='synbtn err';
     showToast('Sync error: '+(result.error||'unknown'));
-    setTimeout(()=>{btn.textContent='☁';btn.className='synbtn';},5000);
+    setTimeout(()=>{btn.innerHTML='<span class="sync-icon">☁</span><span class="sync-time">Sync</span>';btn.className='synbtn';},5000);
     return false;
   }
 }
