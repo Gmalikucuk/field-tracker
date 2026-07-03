@@ -689,10 +689,32 @@ async function endPaveSession() {
     showToast('Sync failed — session kept open');
     return;
   }
+  // Save summary for End of Day calculation
+  var wLast = widthRows.length > 0 ? widthRows[widthRows.length-1] : null;
+  var tLast = truckRows.length > 0 ? truckRows[truckRows.length-1] : null;
+  var dayRecord = {
+    activity: 'paving',
+    date: paveSess ? paveSess.date : '',
+    seg: paveSess ? paveSess.segName : '',
+    dir: paveSess ? paveSess.dir : '',
+    dirLabel: paveSess ? paveSess.dirLabel : '',
+    startSt: paveSess ? paveSess.startSt : 0,
+    endSt: wLast ? wLast.station : 0,
+    area: wLast ? wLast.cum : 0,
+    tonnage: tLast ? tLast.cumTonnage : 0,
+    trucks: truckRows.length,
+    closedAt: new Date().toISOString()
+  };
+  var dayRecords = [];
+  try { dayRecords = JSON.parse(localStorage.getItem('eod_records') || '[]'); } catch(e) {}
+  // Replace any existing paving record for this date
+  dayRecords = dayRecords.filter(function(r){ return !(r.activity==='paving' && r.date===dayRecord.date); });
+  dayRecords.push(dayRecord);
+  localStorage.setItem('eod_records', JSON.stringify(dayRecords));
+
   paveSess=null; widthRows=[]; truckRows=[]; rateEstimates=[];
   persist();
   showToast('Paving session saved ✓');
-  // Go back to home
   window.location.href='index.html?activity=paving';
 }
 
