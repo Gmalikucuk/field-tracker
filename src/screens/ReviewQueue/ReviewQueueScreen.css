@@ -1,0 +1,89 @@
+/* Same fixed-high-contrast principle as the phone screens, even though this
+   one is desktop-oriented — an inherited dark-mode text color on a
+   transparent/white background has already bitten this project twice. */
+.review-queue-screen,
+.review-queue-screen * {
+  box-sizing: border-box;
+  color: #111111;
+}
+
+.review-queue-screen {
+  background: #ffffff;
+  font-family: system-ui, sans-serif;
+  padding: 1.5rem;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.review-queue-screen h1 {
+  font-size: 1.75rem;
+  margin: 1rem 0 0.25rem;
+}
+
+.review-queue-subtitle {
+  color: #555555;
+  margin: 0 0 1.5rem;
+}
+
+.review-queue-error {
+  color: #b00020;
+  font-weight: 600;
+}
+
+.review-queue-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.review-queue-table th {
+  text-align: left;
+  padding: 0.5rem;
+  border-bottom: 2px solid #111111;
+  white-space: nowrap;
+}
+
+.review-queue-table td {
+  padding: 0.5rem;
+  border-bottom: 1px solid #dddddd;
+  vertical-align: top;
+}
+
+.review-queue-narrative-cell {
+  max-width: 260px;
+}
+
+.review-queue-location {
+  font-weight: 700;
+}
+
+.review-queue-narrative {
+  color: #555555;
+  font-size: 0.85rem;
+}
+
+.review-queue-table select,
+.review-queue-table input {
+  width: 100%;
+  min-width: 90px;
+  padding: 0.4rem;
+  border: 1px solid #999999;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #111111;
+  font-size: 0.9rem;
+}
+
+.review-queue-confirm {
+  font-weight: 700;
+  padding: 0.5rem 0.9rem;
+  background: #0a5c2b;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  white-space: nowrap;
+}
+
+.review-queue-confirm:disabled {
+  background: #7a7a7a;
+}
