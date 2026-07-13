@@ -1,0 +1,123 @@
+/* Same fixed-explicit-color, token-driven convention as DashboardScreen.css. */
+.tracker-screen,
+.tracker-screen * {
+  box-sizing: border-box;
+}
+
+.tracker-screen {
+  padding: var(--space-6) var(--space-5);
+  color: var(--color-text);
+  font-family: var(--font-family);
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.tracker-error {
+  color: var(--color-red);
+  font-weight: var(--font-weight-semibold);
+}
+
+.tracker-project {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+}
+
+.tracker-project-code {
+  font-weight: var(--font-weight-bold);
+  color: var(--color-navy);
+  font-size: var(--font-size-lg);
+}
+
+.tracker-project-name {
+  color: var(--color-muted);
+  font-size: var(--font-size-md);
+}
+
+.tracker-table-wrap {
+  background: var(--color-panel);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow-x: auto;
+}
+
+.tracker-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-base);
+}
+
+.tracker-table th {
+  text-align: left;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: #ffffff;
+  background: var(--color-navy);
+  padding: var(--space-3) var(--space-4);
+  white-space: nowrap;
+  position: sticky;
+  top: 0;
+}
+
+.tracker-table td {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+
+.tracker-col-num {
+  text-align: right;
+}
+
+.tracker-section-row td {
+  background: var(--color-bg);
+  color: var(--color-navy-light);
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 2px solid var(--color-blue);
+  padding-top: var(--space-3);
+  padding-bottom: var(--space-2);
+}
+
+.tracker-lumpsum-badge {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-muted);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  padding: var(--space-1) var(--space-3);
+  white-space: nowrap;
+}
+
+.tracker-untracked-cell {
+  color: var(--color-orange);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-sm);
+  text-align: center !important;
+}
+
+.tracker-percent {
+  font-weight: var(--font-weight-bold);
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-sm);
+}
+
+.tracker-percent-green {
+  color: var(--color-green-dark);
+  background: var(--color-green-light);
+}
+
+.tracker-percent-amber {
+  color: var(--color-amber-dark);
+  background: var(--color-amber-light);
+}
+
+.tracker-percent-blue {
+  color: var(--color-navy);
+  background: #e8f0fb;
+}
