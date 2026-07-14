@@ -335,13 +335,6 @@
   text-align: center;
 }
 
-.milling-direction-prompt-label {
-  margin: 0 0 var(--space-4);
-  font-size: var(--font-size-xl);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-navy);
-}
-
 .milling-direction-buttons {
   display: flex;
   gap: var(--space-3);
@@ -363,12 +356,31 @@
   background: var(--color-bg);
 }
 
+.milling-session-indicator-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
 .milling-session-indicator {
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-bold);
   text-transform: uppercase;
   letter-spacing: 0.03em;
   color: var(--color-muted);
+}
+
+.milling-end-session-link {
+  background: none;
+  border: none;
+  color: var(--color-red);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-sm);
+  text-decoration: underline;
+  padding: var(--space-2);
+  min-height: var(--touch-min);
+  cursor: pointer;
 }
 
 .milling-coverage-note {

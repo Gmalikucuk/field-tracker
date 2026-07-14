@@ -7,18 +7,14 @@ export interface ProjectOption {
   name: string
 }
 
-export interface RoadSegmentGroupOption {
-  id: string
-  highway: string
-  fromStation: number
-  toStation: number
-}
-
-export interface RoadSegmentOption {
+export interface SegmentCandidate {
   id: string
   direction: 'NB' | 'SB' | 'EB' | 'WB'
   fromStation: number
   toStation: number
+  highway2FromStation: number | null
+  highway2ToStation: number | null
+  highway: string
 }
 
 export interface CurrentCrewMember {
@@ -52,33 +48,30 @@ export async function fetchProjects(): Promise<ProjectOption[]> {
   }))
 }
 
-export async function fetchRoadSegmentGroups(projectId: string): Promise<RoadSegmentGroupOption[]> {
-  const { data, error } = await supabase
-    .from('road_segment_groups')
-    .select('id, highway, from_station, to_station, jobs!inner(project_id)')
-    .eq('jobs.project_id', projectId)
-    .order('from_station')
-  if (error) throw error
-  return (data ?? []).map((row) => ({
-    id: row.id,
-    highway: row.highway,
-    fromStation: Number(row.from_station),
-    toStation: Number(row.to_station),
-  }))
-}
-
-export async function fetchRoadSegments(segmentGroupId: string): Promise<RoadSegmentOption[]> {
+/**
+ * All road_segments (both directions, every segment group) for a project,
+ * in one call — the raw material segmentResolution.ts resolves a typed
+ * station against. Deliberately not scoped to a single segment group: the
+ * resolver itself decides which candidate a station belongs to (preferring
+ * whichever segment is currently active), so the UI no longer needs the
+ * person to manually pick a segment group/direction pair up front.
+ */
+export async function fetchProjectSegmentCandidates(projectId: string): Promise<SegmentCandidate[]> {
   const { data, error } = await supabase
     .from('road_segments')
-    .select('id, direction, from_station, to_station')
-    .eq('segment_group_id', segmentGroupId)
-    .order('direction')
+    .select(
+      'id, direction, from_station, to_station, highway_2_from_station, highway_2_to_station, road_segment_groups!inner(highway, jobs!inner(project_id))',
+    )
+    .eq('road_segment_groups.jobs.project_id', projectId)
   if (error) throw error
   return (data ?? []).map((row) => ({
     id: row.id,
     direction: row.direction,
     fromStation: Number(row.from_station),
     toStation: Number(row.to_station),
+    highway2FromStation: row.highway_2_from_station === null ? null : Number(row.highway_2_from_station),
+    highway2ToStation: row.highway_2_to_station === null ? null : Number(row.highway_2_to_station),
+    highway: (row.road_segment_groups as unknown as { highway: string }).highway,
   }))
 }
 
