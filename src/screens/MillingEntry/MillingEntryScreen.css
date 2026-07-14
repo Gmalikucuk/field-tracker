@@ -161,6 +161,52 @@
   font-size: var(--font-size-3xl);
 }
 
+/* Pinned to the top of .app-main's scroll (the nearest scrolling ancestor —
+   .milling-screen itself has no overflow of its own), so it stays visible
+   above the form/list as they scroll beneath it, instead of sliding away
+   once the running list grows past one screen. */
+.milling-summary-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+.milling-summary-count {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  white-space: nowrap;
+}
+
+.milling-context-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-2);
+}
+
+.milling-change-context-link {
+  background: none;
+  border: none;
+  color: var(--color-navy);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-sm);
+  text-decoration: underline;
+  padding: var(--space-2);
+  margin-left: calc(-1 * var(--space-2));
+  min-height: var(--touch-min);
+  cursor: pointer;
+}
+
+.milling-context-label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .milling-list ul {
   list-style: none;
   padding: 0;

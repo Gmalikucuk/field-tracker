@@ -8,7 +8,18 @@
 }
 
 .app-shell {
-  min-height: 100vh;
+  /* Fixed, not min-height — .app-main's overflow-y: auto below only ever
+     actually scrolls (rather than the whole page growing past the
+     viewport and the window scrolling instead) when its flex ancestors are
+     height-constrained all the way up. That distinction didn't matter
+     until position: sticky needed a real scrolling ancestor to stick
+     relative to — sticky binds to the nearest ancestor with overflow !=
+     visible regardless of whether that ancestor is actually the one
+     scrolling, so with min-height here it was silently inert. dvh (with a
+     vh fallback for older browsers) avoids the mobile address-bar
+     resize jump a plain 100vh would cause. */
+  height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   background: var(--color-bg);

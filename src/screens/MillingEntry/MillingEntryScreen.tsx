@@ -85,6 +85,14 @@ export function MillingEntryScreen() {
 
   const ready = selectedProjectId !== '' && selectedDirection !== ''
 
+  // Two-step flow: setup (Project + Direction) then entry. entryStarted is
+  // the explicit "Begin Entry" tap; showEntry ALSO turns true automatically
+  // once a session already has a declared direction for this project/
+  // direction combo, so resuming an in-progress session (navigated away and
+  // back, or reloaded) lands straight on step 2 without re-tapping through
+  // setup — matching the existing session-persistence guarantee.
+  const [entryStarted, setEntryStarted] = useState(false)
+
   const [loadingReadings, setLoadingReadings] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
 
@@ -108,6 +116,8 @@ export function MillingEntryScreen() {
   )
 
   const activeSegment = segmentCandidates.find((c) => c.id === session.activeSegmentId) ?? null
+
+  const showEntry = ready && (entryStarted || session.direction !== null)
 
   // [lo, hi] per prior day with active readings on the active segment —
   // merged with today's live interval (from activeEntries, below) to check
@@ -373,6 +383,16 @@ export function MillingEntryScreen() {
     setFormError(null)
   }
 
+  // Returns to step 1 without touching the persisted session — Project and
+  // Direction stay at their current values (just re-editable), and if the
+  // person comes right back to the same combination, showEntry picks the
+  // resumed session back up exactly as before. Distinct from End Session,
+  // which is about ending a WALK on the current project/direction, not
+  // about picking a different one.
+  function handleChangeProjectDirection() {
+    setEntryStarted(false)
+  }
+
   return (
     <div className="milling-screen">
       <header className="milling-header">
@@ -387,38 +407,67 @@ export function MillingEntryScreen() {
         </div>
       </header>
 
-      <section className="milling-selectors">
-        <label className="milling-field">
-          <span>Project</span>
-          <select value={selectedProjectId} onChange={(e) => setSelectedProjectId(e.target.value)}>
-            <option value="">Select project…</option>
-            {projects.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.contractNumber} — {p.name}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="milling-field">
-          <span>Direction</span>
-          <select
-            value={selectedDirection}
-            onChange={(e) => setSelectedDirection(e.target.value)}
-            disabled={!selectedProjectId}
-          >
-            <option value="">Select direction…</option>
-            {availableDirections.map((d) => (
-              <option key={d} value={d}>
-                {d}
-              </option>
-            ))}
-          </select>
-        </label>
-      </section>
-
-      {ready && (
+      {/* Step 1: setup. Project + Direction, with a clear "Begin Entry" tap
+          to move to step 2 — the transition never happens just by having
+          both dropdowns filled in. */}
+      {!showEntry && (
         <>
+          <section className="milling-selectors">
+            <label className="milling-field">
+              <span>Project</span>
+              <select value={selectedProjectId} onChange={(e) => setSelectedProjectId(e.target.value)}>
+                <option value="">Select project…</option>
+                {projects.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.contractNumber} — {p.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="milling-field">
+              <span>Direction</span>
+              <select
+                value={selectedDirection}
+                onChange={(e) => setSelectedDirection(e.target.value)}
+                disabled={!selectedProjectId}
+              >
+                <option value="">Select direction…</option>
+                {availableDirections.map((d) => (
+                  <option key={d} value={d}>
+                    {d}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </section>
+
+          <button
+            type="button"
+            className="milling-submit"
+            disabled={!ready}
+            onClick={() => setEntryStarted(true)}
+          >
+            Begin Entry
+          </button>
+        </>
+      )}
+
+      {/* Step 2: entry. Project/Direction are settled by now — shown as
+          compact context instead of editable dropdowns, with an explicit
+          way back to step 1 rather than a second implementation of picking
+          them. */}
+      {showEntry && (
+        <>
+          <div className="milling-context-row">
+            <button type="button" className="milling-change-context-link" onClick={handleChangeProjectDirection}>
+              ← Change Project/Direction
+            </button>
+            <span className="milling-context-label">
+              {projects.find((p) => p.id === selectedProjectId)?.contractNumber} · {selectedDirection}
+            </span>
+          </div>
+
           {queuedCount > 0 ? (
             <div className="milling-sync-status milling-sync-pending">{queuedCount} queued, syncing…</div>
           ) : (
@@ -427,6 +476,26 @@ export function MillingEntryScreen() {
 
           {!hasIdentity && (
             <p className="milling-identity-required">Select who you are above to start entering readings.</p>
+          )}
+
+          {/* Total area (and reading count) pinned at the top of step 2 —
+              see .milling-summary-sticky — so it's visible without
+              scrolling no matter how long the running list below grows.
+              Shown as soon as a session is underway, even before the first
+              reading resolves a segment (a zero-entries session shows an
+              explicit "nothing yet" state, not a blank gap), and stays
+              visible through a direction-violation block so the crew can
+              still see what's been entered while resolving it. */}
+          {(activeSegment || (hasIdentity && !session.blocked && session.direction !== null)) && (
+            <section className="milling-summary milling-summary-sticky">
+              <div>
+                <span>Total area</span>
+                <strong>{liveTotalArea.toFixed(2)} m²</strong>
+              </div>
+              <span className="milling-summary-count">
+                {activeEntries.length} reading{activeEntries.length === 1 ? '' : 's'}
+              </span>
+            </section>
           )}
 
           {hasIdentity && session.blocked && (
@@ -519,19 +588,8 @@ export function MillingEntryScreen() {
             </form>
           )}
 
-          {/* Shown as soon as a session is underway, even before the first
-              reading resolves a segment — a zero-entries session should
-              show an explicit "nothing yet" state, not a blank gap where
-              this content would otherwise be. ExtraAreaForm still needs a
-              resolved segment specifically (roadSegmentId/station range),
-              so it stays gated on activeSegment below. */}
           {(activeSegment || (hasIdentity && !session.blocked && session.direction !== null)) && (
             <>
-              <section className="milling-summary">
-                <span>Total area</span>
-                <strong>{liveTotalArea.toFixed(2)} m²</strong>
-              </section>
-
               <section className="milling-list">
                 {loadingReadings && <p>Loading…</p>}
                 {loadError && <p className="milling-error">{loadError}</p>}
