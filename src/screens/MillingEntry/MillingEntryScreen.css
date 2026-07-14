@@ -435,6 +435,13 @@
   text-align: center;
 }
 
+.milling-direction-prompt-label {
+  margin: 0 0 var(--space-3);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-navy);
+}
+
 .milling-direction-buttons {
   display: flex;
   gap: var(--space-3);
@@ -454,6 +461,11 @@
 
 .milling-direction-button:active {
   background: var(--color-bg);
+}
+
+.milling-direction-button-selected {
+  background: var(--color-navy);
+  color: #ffffff;
 }
 
 .milling-session-indicator-row {

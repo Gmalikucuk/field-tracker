@@ -83,14 +83,28 @@ export function MillingEntryScreen() {
     [segmentCandidates],
   )
 
-  const ready = selectedProjectId !== '' && selectedDirection !== ''
+  // Ascending/descending (direction of travel) is decided on the setup
+  // screen now, alongside Project + Direction (NB/SB) — all three before
+  // "Begin Entry". Only relevant for a genuinely fresh start: if the picked
+  // project/direction combo already has a session with a declared
+  // ascending/descending, showEntry (below) skips setup entirely, so this
+  // picker never even renders for a resumed session.
+  const [setupDirection, setSetupDirection] = useState<EntrySessionDirection | null>(null)
 
-  // Two-step flow: setup (Project + Direction) then entry. entryStarted is
-  // the explicit "Begin Entry" tap; showEntry ALSO turns true automatically
-  // once a session already has a declared direction for this project/
-  // direction combo, so resuming an in-progress session (navigated away and
-  // back, or reloaded) lands straight on step 2 without re-tapping through
-  // setup — matching the existing session-persistence guarantee.
+  const projectDirectionChosen = selectedProjectId !== '' && selectedDirection !== ''
+  // Gates the "Begin Entry" button specifically — requires all three fresh
+  // choices. Deliberately NOT what showEntry (below) checks: resuming a
+  // session that already has a declared ascending/descending must skip
+  // setup even though setupDirection itself was never touched this load.
+  const ready = projectDirectionChosen && setupDirection !== null
+
+  // Two-step flow: setup (Project + Direction + ascending/descending) then
+  // entry. entryStarted is the explicit "Begin Entry" tap; showEntry ALSO
+  // turns true automatically once a session already has a declared
+  // direction for this project/direction combo, so resuming an in-progress
+  // session (navigated away and back, or reloaded) lands straight on step 2
+  // without re-tapping through setup — matching the existing
+  // session-persistence guarantee.
   const [entryStarted, setEntryStarted] = useState(false)
 
   const [loadingReadings, setLoadingReadings] = useState(false)
@@ -117,7 +131,7 @@ export function MillingEntryScreen() {
 
   const activeSegment = segmentCandidates.find((c) => c.id === session.activeSegmentId) ?? null
 
-  const showEntry = ready && (entryStarted || session.direction !== null)
+  const showEntry = projectDirectionChosen && (entryStarted || session.direction !== null)
 
   // [lo, hi] per prior day with active readings on the active segment —
   // merged with today's live interval (from activeEntries, below) to check
@@ -376,11 +390,18 @@ export function MillingEntryScreen() {
   // future PavingEntryScreen would call clearSession() from its own
   // useEntrySession('paving', projectId, direction) instance, same pattern,
   // entirely independent key).
+  //
+  // Also resets entryStarted/setupDirection so this returns to the setup
+  // screen with all three choices (Project, Direction, ascending/
+  // descending) to make again — not just back to a step-2 prompt, since
+  // ascending/descending no longer has anywhere to be re-declared there.
   function handleEndSession() {
     clearSession()
     setStationInput('')
     setWidthInput('')
     setFormError(null)
+    setEntryStarted(false)
+    setSetupDirection(null)
   }
 
   // Returns to step 1 without touching the persisted session — Project and
@@ -407,9 +428,9 @@ export function MillingEntryScreen() {
         </div>
       </header>
 
-      {/* Step 1: setup. Project + Direction, with a clear "Begin Entry" tap
-          to move to step 2 — the transition never happens just by having
-          both dropdowns filled in. */}
+      {/* Step 1: setup. Project + Direction (NB/SB) + ascending/descending,
+          with a clear "Begin Entry" tap to move to step 2 — the transition
+          never happens just by having everything filled in. */}
       {!showEntry && (
         <>
           <section className="milling-selectors">
@@ -442,11 +463,39 @@ export function MillingEntryScreen() {
             </label>
           </section>
 
+          <div className="milling-direction-prompt">
+            <p className="milling-direction-prompt-label">Ascending or descending?</p>
+            <div className="milling-direction-buttons">
+              <button
+                type="button"
+                className={
+                  'milling-direction-button' + (setupDirection === 'ascending' ? ' milling-direction-button-selected' : '')
+                }
+                onClick={() => setSetupDirection('ascending')}
+              >
+                Ascending
+              </button>
+              <button
+                type="button"
+                className={
+                  'milling-direction-button' + (setupDirection === 'descending' ? ' milling-direction-button-selected' : '')
+                }
+                onClick={() => setSetupDirection('descending')}
+              >
+                Descending
+              </button>
+            </div>
+          </div>
+
           <button
             type="button"
             className="milling-submit"
             disabled={!ready}
-            onClick={() => setEntryStarted(true)}
+            onClick={() => {
+              if (!setupDirection) return
+              updateSession({ direction: setupDirection })
+              setEntryStarted(true)
+            }}
           >
             Begin Entry
           </button>
@@ -506,27 +555,6 @@ export function MillingEntryScreen() {
               <button type="button" className="milling-submit" onClick={handleEndSession}>
                 End session and start new
               </button>
-            </div>
-          )}
-
-          {hasIdentity && !session.blocked && session.direction === null && (
-            <div className="milling-direction-prompt">
-              <div className="milling-direction-buttons">
-                <button
-                  type="button"
-                  className="milling-direction-button"
-                  onClick={() => updateSession({ direction: 'ascending' })}
-                >
-                  Ascending
-                </button>
-                <button
-                  type="button"
-                  className="milling-direction-button"
-                  onClick={() => updateSession({ direction: 'descending' })}
-                >
-                  Descending
-                </button>
-              </div>
             </div>
           )}
 
