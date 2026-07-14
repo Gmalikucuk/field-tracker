@@ -33,7 +33,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: var(--space-4);
+  margin-bottom: var(--space-2);
 }
 
 .milling-header h1 {
@@ -55,8 +55,8 @@
 .milling-selectors {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
-  margin-bottom: var(--space-6);
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
 }
 
 .milling-field {
@@ -91,12 +91,20 @@
   text-align: center;
 }
 
+/* Placeholder must never be mistakable for an entered value in direct
+   sunlight — lighter color AND normal weight, since the large station/width
+   inputs are bold. Real entered text stays var(--color-text) bold. */
+.milling-field input::placeholder {
+  color: var(--color-text-light);
+  font-weight: var(--font-weight-normal);
+}
+
 .milling-form {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
-  margin-bottom: var(--space-6);
-  padding: var(--space-4);
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+  padding: var(--space-2) var(--space-3);
   background: var(--color-panel);
   border: 2px solid var(--color-navy);
   border-radius: var(--radius-xl);
@@ -249,10 +257,21 @@
   border: 2px solid var(--color-amber-dark);
 }
 
-.milling-sync-clear {
+/* Passive/steady-state — a small pill, not a full-width banner, so it
+   doesn't compete for space with the actual entry work. The pending state
+   above stays full-width since it's non-passive (something is actively
+   happening and worth the attention). */
+.milling-sync-pill {
+  display: inline-flex;
+  align-items: center;
+  margin-bottom: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
   background: var(--color-green-light);
   color: var(--color-green-dark);
   border: 2px solid var(--color-green-dark);
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-sm);
 }
 
 .milling-correction-backdrop {

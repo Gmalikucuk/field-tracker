@@ -3,13 +3,20 @@ import { ProfileSelector } from '../components/ProfileSelector'
 import { useCurrentProfile } from '../lib/useCurrentProfile'
 import './AppShell.css'
 
+// mobilePrimary marks the items shown in the mobile bottom bar — Milling
+// and Paving are already reached via Home's rows, and Tracker/History are
+// dense, PM-oriented table views better suited to desktop, so the mobile
+// bar stays to just Home + Dashboard. Desktop's sidebar always shows every
+// item regardless of this flag (see .app-nav-link-mobile-only in
+// AppShell.css) — same routes, same codebase, purely a responsive
+// visibility change.
 const NAV_ITEMS = [
-  { to: '/home', label: 'Home' },
-  { to: '/dashboard', label: 'Dashboard' },
-  { to: '/milling', label: 'Milling' },
-  { to: '/paving', label: 'Paving' },
-  { to: '/tracker', label: 'Tracker' },
-  { to: '/history', label: 'History' },
+  { to: '/home', label: 'Home', mobilePrimary: true },
+  { to: '/dashboard', label: 'Dashboard', mobilePrimary: true },
+  { to: '/milling', label: 'Milling', mobilePrimary: false },
+  { to: '/paving', label: 'Paving', mobilePrimary: false },
+  { to: '/tracker', label: 'Tracker', mobilePrimary: false },
+  { to: '/history', label: 'History', mobilePrimary: false },
 ]
 
 /**
@@ -43,7 +50,11 @@ export function AppShell() {
               <NavLink
                 key={item.to}
                 to={item.to}
-                className={({ isActive }) => 'app-nav-link' + (isActive ? ' app-nav-link-active' : '')}
+                className={({ isActive }) =>
+                  'app-nav-link' +
+                  (item.mobilePrimary ? '' : ' app-nav-link-desktop-only') +
+                  (isActive ? ' app-nav-link-active' : '')
+                }
               >
                 {item.label}
               </NavLink>

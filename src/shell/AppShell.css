@@ -137,4 +137,11 @@
     border-left: none;
     border-top-color: var(--color-amber);
   }
+
+  /* Milling/Paving are already reached via Home's rows; Tracker/History
+     are dense PM-oriented tables better suited to desktop. Same routes,
+     same codebase — this is visibility only, not a separate nav. */
+  .app-nav-link-desktop-only {
+    display: none;
+  }
 }

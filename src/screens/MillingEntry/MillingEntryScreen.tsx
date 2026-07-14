@@ -384,9 +384,12 @@ export function MillingEntryScreen() {
     <div className="milling-screen">
       <header className="milling-header">
         <h1>Milling Entry</h1>
+        {/* Who's identified is already shown in the header's identity pill
+            (every route, not just this one) — this only surfaces something
+            that pill doesn't: a real problem (fetch error, or genuinely no
+            identity at all). */}
         <div className="milling-user">
           {crewMemberError && <span className="milling-user-error">{crewMemberError}</span>}
-          {!crewMemberError && displayName && <span>{displayName}</span>}
           {!crewMemberError && !displayName && <span className="milling-user-error">Not signed in</span>}
         </div>
       </header>
@@ -423,9 +426,11 @@ export function MillingEntryScreen() {
 
       {ready && (
         <>
-          <div className={queuedCount > 0 ? 'milling-sync-status milling-sync-pending' : 'milling-sync-status milling-sync-clear'}>
-            {queuedCount > 0 ? `${queuedCount} queued, syncing…` : 'All synced'}
-          </div>
+          {queuedCount > 0 ? (
+            <div className="milling-sync-status milling-sync-pending">{queuedCount} queued, syncing…</div>
+          ) : (
+            <span className="milling-sync-pill">All synced</span>
+          )}
 
           {!hasIdentity && (
             <p className="milling-identity-required">Select who you are above to start entering readings.</p>
@@ -521,7 +526,13 @@ export function MillingEntryScreen() {
             </form>
           )}
 
-          {activeSegment && (
+          {/* Shown as soon as a session is underway, even before the first
+              reading resolves a segment — a zero-entries session should
+              show an explicit "nothing yet" state, not a blank gap where
+              this content would otherwise be. ExtraAreaForm still needs a
+              resolved segment specifically (roadSegmentId/station range),
+              so it stays gated on activeSegment below. */}
+          {(activeSegment || (hasIdentity && !session.blocked && session.direction !== null)) && (
             <>
               <section className="milling-summary">
                 <span>Total area</span>
@@ -567,13 +578,15 @@ export function MillingEntryScreen() {
                 </ul>
               </section>
 
-              <ExtraAreaForm
-                roadSegmentId={activeSegment.id}
-                date={today}
-                hasIdentity={hasIdentity}
-                segmentFromStation={activeSegment.fromStation}
-                segmentToStation={activeSegment.toStation}
-              />
+              {activeSegment && (
+                <ExtraAreaForm
+                  roadSegmentId={activeSegment.id}
+                  date={today}
+                  hasIdentity={hasIdentity}
+                  segmentFromStation={activeSegment.fromStation}
+                  segmentToStation={activeSegment.toStation}
+                />
+              )}
             </>
           )}
         </>
