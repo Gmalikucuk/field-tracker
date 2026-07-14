@@ -12,7 +12,13 @@ export const colors = {
   // than preserved under a new name.
   blue: '#2E75B6', blueLight: '#DCE9F5',
   amber: '#F5C518', amberLight: '#FFF2CC', amberDark: '#614D00',
-  green: '#4CAF82', greenLight: '#C6EFCE', greenDark: '#324F20',
+  // greenDark is calibrated purely for AAA text-on-greenLight contrast, and
+  // its hue has never actually matched --color-green (152.7° vs
+  // greenDark's 96.5°, an unrelated olive) — greenButton is a real dark
+  // shade of the SAME green hue, for primary-action button fills (solid
+  // background, white text), so a future contrast-driven edit to greenDark
+  // can't silently shift the "confirm" button's color again.
+  green: '#4CAF82', greenLight: '#C6EFCE', greenDark: '#324F20', greenButton: '#2A6047',
   orange: '#E07000', orangeLight: '#FFF8F0', orangeDark: '#824100',
   red: '#E05252', redLight: '#FCE4D6', redDark: '#8F1A1A',
   bg: '#F4F6F9', panel: '#FFFFFF', border: '#DDE3EC',

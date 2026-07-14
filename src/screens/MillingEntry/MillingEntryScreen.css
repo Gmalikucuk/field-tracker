@@ -108,7 +108,7 @@
   font-weight: var(--font-weight-bold);
   padding: var(--space-4);
   min-height: var(--touch-large);
-  background: var(--color-green-dark);
+  background: var(--color-green-button);
   color: #ffffff;
   border: none;
   border-radius: var(--radius-lg);
