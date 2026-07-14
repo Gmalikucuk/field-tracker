@@ -39,7 +39,7 @@
   margin: 0.75rem 0 0;
   padding: 0.75rem;
   background: #d7f2df;
-  color: #0a5c2b;
+  color: #0a5729;
   border: 2px solid #0a5c2b;
   border-radius: 10px;
   font-weight: 700;
@@ -109,17 +109,17 @@
 
 .extra-area-badge-queued {
   background: #fff4cc;
-  color: #8a6d00;
+  color: #614d00;
 }
 
 .extra-area-badge-pending {
   background: #ffe4cc;
-  color: #a0501a;
+  color: #743a13;
 }
 
 .extra-area-badge-confirmed {
   background: #d7f2df;
-  color: #0a5c2b;
+  color: #0a5729;
 }
 
 .extra-area-backdrop {

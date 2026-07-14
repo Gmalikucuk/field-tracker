@@ -1,12 +1,22 @@
+// *Dark tokens are the AAA-safe (>=7:1) text color for the matching *Light
+// background — every light-bg/dark-text badge pairing must use *Dark for
+// its text, never the base hue, which is calibrated for use as an accent
+// (borders, icons, solid fills with white text) and is too light to read
+// as body/badge text on its own *Light background. See
+// contrast.test.ts for the enforcement.
 export const colors = {
   navy: '#1F3864', navyDark: '#162847', navyLight: '#2E4F7A',
-  blue: '#2E75B6', blueLight: '#4A90D9',
-  amber: '#F5C518', amberLight: '#FFF2CC', amberDark: '#D4A800',
-  green: '#4CAF82', greenLight: '#C6EFCE', greenDark: '#375623',
-  orange: '#E07000', orangeLight: '#FFF8F0',
-  red: '#E05252', redLight: '#FCE4D6',
+  // blueLight used to be #4A90D9 — a medium-bright blue, not a pale tint
+  // like every other *Light token (a naming/value bug). Nothing else in
+  // the codebase referenced that value, so it's replaced outright rather
+  // than preserved under a new name.
+  blue: '#2E75B6', blueLight: '#DCE9F5',
+  amber: '#F5C518', amberLight: '#FFF2CC', amberDark: '#614D00',
+  green: '#4CAF82', greenLight: '#C6EFCE', greenDark: '#324F20',
+  orange: '#E07000', orangeLight: '#FFF8F0', orangeDark: '#824100',
+  red: '#E05252', redLight: '#FCE4D6', redDark: '#8F1A1A',
   bg: '#F4F6F9', panel: '#FFFFFF', border: '#DDE3EC',
-  muted: '#6B7280', text: '#1A1A2E', textLight: '#9CA3AF',
+  muted: '#48505A', text: '#1A1A2E', textLight: '#9CA3AF',
   inputBg: '#FAFBFD', inputFocus: '#FFFFFF',
 } as const;
 

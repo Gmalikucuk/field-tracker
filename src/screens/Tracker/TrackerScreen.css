@@ -13,7 +13,7 @@
 }
 
 .tracker-error {
-  color: var(--color-red);
+  color: var(--color-red-dark);
   font-weight: var(--font-weight-semibold);
 }
 
@@ -95,7 +95,7 @@
 }
 
 .tracker-untracked-cell {
-  color: var(--color-orange);
+  color: var(--color-orange-dark);
   font-weight: var(--font-weight-semibold);
   font-size: var(--font-size-sm);
   text-align: center !important;

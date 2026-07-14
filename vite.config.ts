@@ -19,8 +19,8 @@ export default defineConfig({
         name: 'Field Tracker',
         short_name: 'Field Tracker',
         description: 'Keywest Asphalt field data tracker',
-        theme_color: '#7e14ff',
-        background_color: '#ffffff',
+        theme_color: '#1F3864',
+        background_color: '#F4F6F9',
         display: 'standalone',
         start_url: '/',
         icons: [

@@ -15,7 +15,7 @@
 }
 
 .dashboard-error {
-  color: var(--color-red);
+  color: var(--color-red-dark);
   font-weight: var(--font-weight-semibold);
 }
 
@@ -190,7 +190,7 @@
 .dashboard-item-untracked-label {
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-semibold);
-  color: var(--color-orange);
+  color: var(--color-orange-dark);
   background: var(--color-orange-light);
   border-radius: var(--radius-sm);
   padding: 2px var(--space-2);
