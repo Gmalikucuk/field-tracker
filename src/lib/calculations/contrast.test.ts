@@ -169,6 +169,16 @@ const CROSS_RULE_PAIRINGS: Pairing[] = [
     bg: colors.panel,
   },
   {
+    source: 'MillingEntryScreen.css .milling-row-menu-button / .milling-entry bg',
+    fg: colors.navy,
+    bg: colors.panel,
+  },
+  {
+    source: 'MillingEntryScreen.css .milling-row-menu-item / .milling-row-menu bg',
+    fg: colors.text,
+    bg: colors.panel,
+  },
+  {
     source: 'MillingHomeScreen.css .milling-home-history h2 / app-shell bg',
     fg: colors.indigo,
     bg: colors.bg,

@@ -346,6 +346,73 @@
   min-height: var(--space-10);
 }
 
+.milling-badge-voided {
+  background: var(--color-red-light);
+  color: var(--color-red-dark);
+}
+
+/* Per-row "⋮" menu (Review Readings screen) — same trigger-button footprint
+   as .milling-edit-button so rows keep a consistent right-edge width
+   whether they end up with a menu or a bare edit button. */
+.milling-row-menu-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.milling-row-menu-button {
+  background: none;
+  border: none;
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  padding: var(--space-1);
+  cursor: pointer;
+  min-width: var(--space-10);
+  min-height: var(--space-10);
+  color: var(--color-navy);
+}
+
+.milling-row-menu {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  min-width: 200px;
+  background: var(--color-panel);
+  border: 2px solid var(--color-navy);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.milling-row-menu-item {
+  background: none;
+  border: none;
+  text-align: left;
+  padding: var(--space-3);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+  cursor: pointer;
+  min-height: var(--touch-standard);
+}
+
+.milling-row-menu-item + .milling-row-menu-item {
+  border-top: 1px solid var(--color-border);
+}
+
+.milling-row-menu-item:disabled {
+  color: var(--color-text-light);
+  cursor: not-allowed;
+}
+
+.milling-row-menu-item-note {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-normal);
+  display: block;
+}
+
 .milling-correction-backdrop {
   position: fixed;
   inset: 0;

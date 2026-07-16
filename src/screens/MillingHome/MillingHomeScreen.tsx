@@ -94,7 +94,10 @@ export function MillingHomeScreen() {
               <ul className="milling-home-session-list">
                 {day.sessions.map((session) => (
                   <li key={session.key} className="milling-home-session-row">
-                    <Link to={`/milling/day/${day.date}`} className="milling-home-session-link">
+                    <Link
+                      to={`/milling/day/${day.date}/segment/${session.roadSegmentId}`}
+                      className="milling-home-session-link"
+                    >
                       <span className="milling-home-session-meta">
                         {session.projectContractNumber} · {session.direction}
                         {session.ascendingDescending && ` · ${session.ascendingDescending}`}

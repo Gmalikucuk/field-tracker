@@ -8,6 +8,7 @@ import { HomeScreen } from './screens/Home/HomeScreen'
 import { MillingEntryScreen } from './screens/MillingEntry/MillingEntryScreen'
 import { MillingDayDetailScreen } from './screens/MillingHome/MillingDayDetailScreen'
 import { MillingHomeScreen } from './screens/MillingHome/MillingHomeScreen'
+import { ReviewReadingsScreen } from './screens/MillingHome/ReviewReadingsScreen'
 import { PavingScreen } from './screens/Paving/PavingScreen'
 import { TrackerScreen } from './screens/Tracker/TrackerScreen'
 
@@ -31,6 +32,7 @@ function App() {
               }
             />
             <Route path="/milling/day/:date" element={<MillingDayDetailScreen />} />
+            <Route path="/milling/day/:date/segment/:roadSegmentId" element={<ReviewReadingsScreen />} />
             <Route path="/paving" element={<PavingScreen />} />
             <Route path="/tracker" element={<TrackerScreen />} />
             <Route path="/history" element={<HistoryScreen />} />

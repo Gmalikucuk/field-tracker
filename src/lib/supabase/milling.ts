@@ -33,6 +33,7 @@ export interface WidthReadingRow {
   width: number
   isCorrection: boolean
   supersededBy: string | null
+  isVoided: boolean
   correctionReason: string | null
   entryTimestamp: string
 }
@@ -93,7 +94,7 @@ export async function fetchCurrentCrewMember(): Promise<CurrentCrewMember | null
 }
 
 const WIDTH_READING_SELECT =
-  'id, direction, station_sequence, station, width, is_correction, superseded_by, correction_reason, entry_timestamp'
+  'id, direction, station_sequence, station, width, is_correction, superseded_by, is_voided, correction_reason, entry_timestamp'
 
 function mapWidthReadingRow(row: {
   id: string
@@ -103,6 +104,7 @@ function mapWidthReadingRow(row: {
   width: number
   is_correction: boolean
   superseded_by: string | null
+  is_voided: boolean
   correction_reason: string | null
   entry_timestamp: string
 }): WidthReadingRow {
@@ -114,6 +116,7 @@ function mapWidthReadingRow(row: {
     width: Number(row.width),
     isCorrection: row.is_correction,
     supersededBy: row.superseded_by,
+    isVoided: row.is_voided,
     correctionReason: row.correction_reason,
     entryTimestamp: row.entry_timestamp,
   }
@@ -139,6 +142,7 @@ async function queryStationCoverageIntervals(roadSegmentId: string, excludeDate?
     .select('paving_date, station')
     .eq('road_segment_id', roadSegmentId)
     .is('superseded_by', null)
+    .eq('is_voided', false)
   if (excludeDate) query = query.neq('paving_date', excludeDate)
   const { data, error } = await query
   if (error) throw error
@@ -262,6 +266,48 @@ export async function supersedeWidthReading(params: {
   return mapWidthReadingRow(inserted)
 }
 
+/**
+ * Voids a reading in place — no new row, unlike a correction. Role-gated
+ * server-side identically to superseded_by (original enterer or
+ * coordinator only, see enforce_width_readings_update_columns), and
+ * correction_reason is required by the same check constraint that already
+ * covers is_correction/superseded_by. The row is never deleted or hidden;
+ * callers exclude is_voided rows from area/coverage math but keep showing
+ * them (struck through) in any reading list.
+ */
+export async function voidWidthReading(readingId: string, reason: string): Promise<void> {
+  const { error } = await supabase
+    .from('width_readings')
+    .update({ is_voided: true, correction_reason: reason })
+    .eq('id', readingId)
+  if (error) throw error
+}
+
+/**
+ * Inserts a reading between afterReadingId and whatever currently follows
+ * it, via the insert_width_reading_between DB function (see migration
+ * 20260716200000) — the fractional station_sequence value is computed and
+ * assigned entirely server-side, atomically, under the same per-group
+ * advisory lock a normal append uses. If there's no room left between two
+ * neighbors (they're already as close as the numeric(10,3) column allows),
+ * the function raises a specific "No room left..." error rather than a raw
+ * constraint violation, which surfaces here as a normal thrown Error via
+ * PostgREST's error.message — callers don't need to special-case it.
+ */
+export async function insertWidthReadingBetween(
+  afterReadingId: string,
+  station: number,
+  width: number,
+): Promise<WidthReadingRow> {
+  const { data, error } = await supabase.rpc('insert_width_reading_between', {
+    after_reading_id: afterReadingId,
+    new_station: station,
+    new_width: width,
+  })
+  if (error) throw error
+  return mapWidthReadingRow(data)
+}
+
 export interface PastReadingRow {
   id: string
   roadSegmentId: string
@@ -272,6 +318,7 @@ export interface PastReadingRow {
   width: number
   isCorrection: boolean
   supersededBy: string | null
+  isVoided: boolean
   correctionReason: string | null
   entryTimestamp: string
   highway: string
@@ -317,7 +364,7 @@ export interface PastSessionGroup {
 
 const PAST_READING_SELECT = `
   id, road_segment_id, direction, paving_date, station_sequence, station, width,
-  is_correction, superseded_by, correction_reason, entry_timestamp,
+  is_correction, superseded_by, is_voided, correction_reason, entry_timestamp,
   road_segments!inner ( from_station, to_station, road_segment_groups!inner ( highway, jobs!inner ( projects!inner ( id, contract_number, name ) ) ) )
 `
 
@@ -331,6 +378,7 @@ interface RawPastReadingRow {
   width: number
   is_correction: boolean
   superseded_by: string | null
+  is_voided: boolean
   correction_reason: string | null
   entry_timestamp: string
   road_segments: {
@@ -362,6 +410,7 @@ function mapPastReadingRow(row: RawPastReadingRow): PastReadingRow {
     width: Number(row.width),
     isCorrection: row.is_correction,
     supersededBy: row.superseded_by,
+    isVoided: row.is_voided,
     correctionReason: row.correction_reason,
     entryTimestamp: row.entry_timestamp,
     highway: group.highway,
@@ -398,6 +447,7 @@ export async function fetchPastSessionGroups(excludeDate: string): Promise<PastS
     .from('width_readings')
     .select(PAST_READING_SELECT)
     .is('superseded_by', null)
+    .eq('is_voided', false)
     .neq('paving_date', excludeDate)
   if (error) throw error
 
@@ -493,7 +543,9 @@ export async function fetchDayReadingGroups(date: string): Promise<DaySegmentGro
         ? a.stationSequence - b.stationSequence
         : a.entryTimestamp.localeCompare(b.entryTimestamp),
     )
-    const activeRows = sorted.filter((r) => r.supersededBy === null)
+    // Voided readings stay in `readings` (visible, struck through) but
+    // never contribute to area, same as superseded ones.
+    const activeRows = sorted.filter((r) => r.supersededBy === null && !r.isVoided)
     const area =
       activeRows.length < 2
         ? 0
@@ -513,4 +565,51 @@ export async function fetchDayReadingGroups(date: string): Promise<DaySegmentGro
   }
 
   return groups.sort((a, b) => a.projectContractNumber.localeCompare(b.projectContractNumber) || a.direction.localeCompare(b.direction))
+}
+
+/**
+ * Every reading for one specific session (one segment, one date) —
+ * including superseded and voided rows, so the Review Readings screen can
+ * show the full history of what happened to this session, not just what's
+ * currently active. Scoped directly via the query rather than reusing
+ * fetchDayReadingGroups + filtering client-side, since a session review is
+ * naturally keyed by (date, roadSegmentId) already and there's no reason to
+ * fetch every other segment touched that same day just to discard them.
+ */
+export async function fetchSessionReadings(
+  date: string,
+  roadSegmentId: string,
+): Promise<DaySegmentGroup | null> {
+  const { data, error } = await supabase
+    .from('width_readings')
+    .select(PAST_READING_SELECT)
+    .eq('paving_date', date)
+    .eq('road_segment_id', roadSegmentId)
+  if (error) throw error
+
+  const rows = (data ?? []).map((row) => mapPastReadingRow(row as unknown as RawPastReadingRow))
+  if (rows.length === 0) return null
+
+  const sorted = [...rows].sort((a, b) =>
+    a.stationSequence !== b.stationSequence
+      ? a.stationSequence - b.stationSequence
+      : a.entryTimestamp.localeCompare(b.entryTimestamp),
+  )
+  const activeRows = sorted.filter((r) => r.supersededBy === null && !r.isVoided)
+  const area =
+    activeRows.length < 2
+      ? 0
+      : cumulativeArea(
+          calculateSegments(activeRows.map((r) => ({ stationSequence: r.stationSequence, station: r.station, width: r.width }))),
+        )
+  const first = sorted[0]
+  return {
+    roadSegmentId,
+    direction: first.direction,
+    highway: first.highway,
+    projectContractNumber: first.projectContractNumber,
+    projectName: first.projectName,
+    area,
+    readings: sorted,
+  }
 }
