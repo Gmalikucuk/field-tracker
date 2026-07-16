@@ -485,13 +485,18 @@ export function MillingEntryScreen() {
             </label>
 
             <label className="milling-field">
-              <span>Lane</span>
+              {/* "Direction" deliberately, not "Lane" — Lane is reserved
+                  for a real, distinct upcoming concept (Fast/Slow/Middle
+                  lanes, a future project), so reusing it for NB/SB here
+                  would recreate the exact ambiguity that word was meant to
+                  avoid. */}
+              <span>Direction</span>
               <select
                 value={selectedDirection}
                 onChange={(e) => setSelectedDirection(e.target.value)}
                 disabled={!selectedProjectId}
               >
-                <option value="">Select lane…</option>
+                <option value="">Select direction…</option>
                 {availableDirections.map((d) => (
                   <option key={d} value={d}>
                     {d}
@@ -573,7 +578,7 @@ export function MillingEntryScreen() {
               type="button"
               className="milling-change-context-icon"
               onClick={handleChangeProjectDirection}
-              aria-label="Change Project/Lane"
+              aria-label="Change Project/Direction"
             >
               ←
             </button>
@@ -643,11 +648,6 @@ export function MillingEntryScreen() {
               </div>
 
               {activeSegment && coverageError && <p className="milling-error">{coverageError}</p>}
-              {activeSegment && mergedCoverage.length > 0 && (
-                <p className="milling-coverage-note">
-                  Already covered: {mergedCoverage.map((iv) => `${iv.lo}–${iv.hi} m`).join(', ')}
-                </p>
-              )}
 
               <div className="milling-field-row">
                 <label className="milling-field milling-field-large">
