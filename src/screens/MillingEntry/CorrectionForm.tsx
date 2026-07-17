@@ -82,74 +82,77 @@ export function CorrectionForm({
   return (
     <div className="milling-correction-backdrop" onClick={onClose}>
       <form
-        className="milling-correction-form"
+        className="milling-correction-form milling-correction-form-split"
         onClick={(e) => e.stopPropagation()}
         onSubmit={handleSubmit}
       >
-        <h2>Correct Entry</h2>
-        <p className="milling-correction-original">
-          Original: {entry.station} m, {entry.width} m wide
-        </p>
+        {/* Scrolls on its own when content (e.g. the "Other" textarea)
+            pushes past the modal's own max-height — Cancel/Save Correction
+            live outside this region (see .milling-correction-actions below)
+            so they're never part of what scrolls out of view. */}
+        <div className="milling-correction-scroll">
+          <h2>Correct Entry</h2>
+          <p className="milling-correction-original">
+            Original: {entry.station} m, {entry.width} m wide
+          </p>
 
-        <label className="milling-field milling-field-large">
-          <span>Corrected station (m)</span>
-          <input
-            type="text"
-            inputMode="decimal"
-            autoComplete="off"
-            value={correctedStation}
-            onChange={(e) => setCorrectedStation(e.target.value)}
-          />
-        </label>
-
-        <label className="milling-field milling-field-large">
-          <span>Corrected width (m)</span>
-          <input
-            type="text"
-            inputMode="decimal"
-            autoComplete="off"
-            value={correctedWidth}
-            onChange={(e) => setCorrectedWidth(e.target.value)}
-          />
-        </label>
-
-        <div className="milling-field">
-          <span>Reason (required)</span>
-          <div className="milling-reason-presets">
-            {REASON_PRESETS.map((preset) => (
-              <button
-                key={preset.id}
-                type="button"
-                className={
-                  'milling-reason-preset' + (reasonPreset === preset.id ? ' milling-reason-preset-selected' : '')
-                }
-                onClick={() => setReasonPreset(preset.id)}
-              >
-                {preset.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {reasonPreset === 'other' && (
-          <label className="milling-field">
-            <span>Describe the reason</span>
-            <textarea
-              value={customReason}
-              onChange={(e) => setCustomReason(e.target.value)}
-              rows={3}
-              placeholder="Why is this being corrected?"
+          <label className="milling-field milling-field-large">
+            <span>Corrected station (m)</span>
+            <input
+              type="text"
+              inputMode="decimal"
+              autoComplete="off"
+              value={correctedStation}
+              onChange={(e) => setCorrectedStation(e.target.value)}
             />
           </label>
-        )}
 
-        {isPastDayCorrection && (
-          <p className="milling-correction-past-day-warning">
-            This may affect previously calculated totals.
-          </p>
-        )}
+          <label className="milling-field milling-field-large">
+            <span>Corrected width (m)</span>
+            <input
+              type="text"
+              inputMode="decimal"
+              autoComplete="off"
+              value={correctedWidth}
+              onChange={(e) => setCorrectedWidth(e.target.value)}
+            />
+          </label>
 
-        {error && <p className="milling-error">{error}</p>}
+          <label className="milling-field">
+            <span>Reason (required)</span>
+            <select
+              value={reasonPreset ?? ''}
+              onChange={(e) => setReasonPreset((e.target.value || null) as ReasonPresetId | null)}
+            >
+              <option value="">Select a reason…</option>
+              {REASON_PRESETS.map((preset) => (
+                <option key={preset.id} value={preset.id}>
+                  {preset.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          {reasonPreset === 'other' && (
+            <label className="milling-field">
+              <span>Describe the reason</span>
+              <textarea
+                value={customReason}
+                onChange={(e) => setCustomReason(e.target.value)}
+                rows={3}
+                placeholder="Why is this being corrected?"
+              />
+            </label>
+          )}
+
+          {isPastDayCorrection && (
+            <p className="milling-correction-past-day-warning">
+              This may affect previously calculated totals.
+            </p>
+          )}
+
+          {error && <p className="milling-error">{error}</p>}
+        </div>
 
         <div className="milling-correction-actions">
           <button type="button" onClick={onClose} className="milling-cancel" disabled={submitting}>

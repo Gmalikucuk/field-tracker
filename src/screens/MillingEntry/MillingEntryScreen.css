@@ -431,7 +431,12 @@
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  z-index: 10;
+  /* Above .app-nav's fixed bottom bar (z-index: 20, see AppShell.css) —
+     it used to be below it, so on mobile the nav bar could paint over
+     (and swallow taps on) the bottom of this modal, including its own
+     Cancel/Save buttons, whenever the modal was tall enough to reach
+     that far down. */
+  z-index: 30;
 }
 
 .milling-correction-form {
@@ -445,7 +450,37 @@
   flex-direction: column;
   gap: var(--space-4);
   max-height: 90vh;
+  max-height: 90dvh;
   overflow-y: auto;
+}
+
+/* Used by CorrectionForm, which splits its content into a scrollable
+   region (.milling-correction-scroll) and a footer
+   (.milling-correction-actions) that must always stay visible — unlike
+   the base rule above (still used as-is by VoidReadingForm/
+   InsertReadingAfterForm, which are short enough to just let the whole
+   form scroll), this variant never scrolls itself; only its scroll child
+   does, so Cancel/Save Correction can never end up part of what scrolls
+   out of view together with a growing "Other" textarea or a validation
+   error. */
+.milling-correction-form-split {
+  padding: 0;
+  gap: 0;
+  overflow: hidden;
+}
+
+.milling-correction-scroll {
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-6) var(--space-4) var(--space-4);
+}
+
+.milling-correction-form-split .milling-correction-actions {
+  flex-shrink: 0;
+  padding: var(--space-4);
+  border-top: 1px solid var(--color-border);
 }
 
 .milling-correction-form h2 {
