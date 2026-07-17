@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ModalSheet } from '../../components/ModalSheet'
 import { voidWidthReading } from '../../lib/supabase/milling'
 
 function extractErrorMessage(err: unknown, fallback: string): string {
@@ -65,58 +66,55 @@ export function VoidReadingForm({
   }
 
   return (
-    <div className="milling-correction-backdrop" onClick={onClose}>
-      <form className="milling-correction-form" onClick={(e) => e.stopPropagation()} onSubmit={handleSubmit}>
-        <h2>Void Reading</h2>
-        <p className="milling-correction-original">
-          {station} m, {width} m wide
-        </p>
-
-        <div className="milling-field">
-          <span>Reason (required)</span>
-          <div className="milling-reason-presets">
-            {VOID_REASON_PRESETS.map((preset) => (
-              <button
-                key={preset.id}
-                type="button"
-                className={
-                  'milling-reason-preset' + (reasonPreset === preset.id ? ' milling-reason-preset-selected' : '')
-                }
-                onClick={() => setReasonPreset(preset.id)}
-              >
-                {preset.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {reasonPreset === 'other' && (
-          <label className="milling-field">
-            <span>Describe the reason</span>
-            <textarea
-              value={customReason}
-              onChange={(e) => setCustomReason(e.target.value)}
-              rows={3}
-              placeholder="Why is this being voided?"
-            />
-          </label>
-        )}
-
-        {isPastDayVoid && (
-          <p className="milling-correction-past-day-warning">This may affect previously calculated totals.</p>
-        )}
-
-        {error && <p className="milling-error">{error}</p>}
-
-        <div className="milling-correction-actions">
+    <ModalSheet
+      onClose={onClose}
+      onSubmit={handleSubmit}
+      actions={
+        <>
           <button type="button" onClick={onClose} className="milling-cancel" disabled={submitting}>
             Cancel
           </button>
           <button type="submit" className="milling-submit" disabled={submitting}>
             {submitting ? 'Voiding…' : 'Void Reading'}
           </button>
-        </div>
-      </form>
-    </div>
+        </>
+      }
+    >
+      <h2>Void Reading</h2>
+      <p className="milling-correction-original">
+        {station} m, {width} m wide
+      </p>
+
+      <label className="milling-field">
+        <span>Reason (required)</span>
+        <select
+          value={reasonPreset ?? ''}
+          onChange={(e) => setReasonPreset((e.target.value || null) as VoidReasonPresetId | null)}
+        >
+          <option value="">Select a reason…</option>
+          {VOID_REASON_PRESETS.map((preset) => (
+            <option key={preset.id} value={preset.id}>
+              {preset.label}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      {reasonPreset === 'other' && (
+        <label className="milling-field">
+          <span>Describe the reason</span>
+          <textarea
+            value={customReason}
+            onChange={(e) => setCustomReason(e.target.value)}
+            rows={3}
+            placeholder="Why is this being voided?"
+          />
+        </label>
+      )}
+
+      {isPastDayVoid && <p className="milling-correction-past-day-warning">This may affect previously calculated totals.</p>}
+
+      {error && <p className="milling-error">{error}</p>}
+    </ModalSheet>
   )
 }

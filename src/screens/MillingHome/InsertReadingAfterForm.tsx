@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ModalSheet } from '../../components/ModalSheet'
 import { insertWidthReadingBetween } from '../../lib/supabase/milling'
 
 function extractErrorMessage(err: unknown, fallback: string): string {
@@ -60,50 +61,50 @@ export function InsertReadingAfterForm({
   }
 
   return (
-    <div className="milling-correction-backdrop" onClick={onClose}>
-      <form className="milling-correction-form" onClick={(e) => e.stopPropagation()} onSubmit={handleSubmit}>
-        <h2>Insert Reading After</h2>
-        <p className="milling-correction-original">After {afterStation} m</p>
-
-        <label className="milling-field milling-field-large">
-          <span>Station (m)</span>
-          <input
-            type="text"
-            inputMode="decimal"
-            autoComplete="off"
-            value={station}
-            onChange={(e) => setStation(e.target.value)}
-            placeholder="0.00"
-          />
-        </label>
-
-        <label className="milling-field milling-field-large">
-          <span>Width (m)</span>
-          <input
-            type="text"
-            inputMode="decimal"
-            autoComplete="off"
-            value={width}
-            onChange={(e) => setWidth(e.target.value)}
-            placeholder="0.00"
-          />
-        </label>
-
-        {isPastDayInsert && (
-          <p className="milling-correction-past-day-warning">This may affect previously calculated totals.</p>
-        )}
-
-        {error && <p className="milling-error">{error}</p>}
-
-        <div className="milling-correction-actions">
+    <ModalSheet
+      onClose={onClose}
+      onSubmit={handleSubmit}
+      actions={
+        <>
           <button type="button" onClick={onClose} className="milling-cancel" disabled={submitting}>
             Cancel
           </button>
           <button type="submit" className="milling-submit" disabled={submitting}>
             {submitting ? 'Adding…' : 'Add Reading'}
           </button>
-        </div>
-      </form>
-    </div>
+        </>
+      }
+    >
+      <h2>Insert Reading After</h2>
+      <p className="milling-correction-original">After {afterStation} m</p>
+
+      <label className="milling-field milling-field-large">
+        <span>Station (m)</span>
+        <input
+          type="text"
+          inputMode="decimal"
+          autoComplete="off"
+          value={station}
+          onChange={(e) => setStation(e.target.value)}
+          placeholder="0.00"
+        />
+      </label>
+
+      <label className="milling-field milling-field-large">
+        <span>Width (m)</span>
+        <input
+          type="text"
+          inputMode="decimal"
+          autoComplete="off"
+          value={width}
+          onChange={(e) => setWidth(e.target.value)}
+          placeholder="0.00"
+        />
+      </label>
+
+      {isPastDayInsert && <p className="milling-correction-past-day-warning">This may affect previously calculated totals.</p>}
+
+      {error && <p className="milling-error">{error}</p>}
+    </ModalSheet>
   )
 }

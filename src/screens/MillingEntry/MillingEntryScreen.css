@@ -495,31 +495,6 @@
   font-size: var(--font-size-md);
 }
 
-.milling-reason-presets {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  margin-top: var(--space-1);
-}
-
-.milling-reason-preset {
-  font-size: var(--font-size-md);
-  font-weight: var(--font-weight-semibold);
-  padding: var(--space-3);
-  min-height: var(--touch-standard);
-  text-align: left;
-  background: var(--color-panel);
-  color: var(--color-text);
-  border: 2px solid var(--color-border);
-  border-radius: var(--radius-lg);
-}
-
-.milling-reason-preset-selected {
-  background: var(--color-blue-light);
-  border-color: var(--color-navy);
-  color: var(--color-navy);
-}
-
 .milling-correction-past-day-warning {
   margin: 0;
   padding: var(--space-3);
