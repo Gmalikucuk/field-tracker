@@ -306,8 +306,23 @@
   font-weight: var(--font-weight-bold);
 }
 
-.milling-badge {
+/* Everything after station/width — data-state badges (corrected/
+   superseded/voided), the sync-status dot, and whatever trailing
+   action (edit button, "⋮" menu) the row has — clusters here as one
+   flex item, so the cluster as a whole gets pushed to the row's right
+   edge regardless of which of those pieces are actually present. Used
+   to rely on the first .milling-badge getting margin-left: auto, which
+   silently stopped working for rows with no badge at all — exactly the
+   common case once the sync-status badge became a dot instead. */
+.milling-entry-status {
   margin-left: auto;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.milling-badge {
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-bold);
   text-transform: uppercase;
@@ -315,19 +330,9 @@
   border-radius: var(--radius-full);
 }
 
-.milling-badge-synced {
-  background: var(--color-green-light);
-  color: var(--color-green-dark);
-}
-
 .milling-badge-superseded {
   background: var(--color-bg);
   color: var(--color-muted);
-}
-
-.milling-badge-queued {
-  background: var(--color-periwinkle-light);
-  color: var(--color-periwinkle-dark);
 }
 
 /* No purple in the token palette — blue is the closest "distinct, not
@@ -340,10 +345,6 @@
 .milling-entry-station,
 .milling-entry-width {
   flex-shrink: 0;
-}
-
-.milling-entry > .milling-badge:first-of-type {
-  margin-left: auto;
 }
 
 .milling-edit-button {

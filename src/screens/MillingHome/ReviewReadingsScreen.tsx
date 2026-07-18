@@ -84,54 +84,58 @@ export function ReviewReadingsScreen() {
       <li key={r.id} className={struckThrough ? 'milling-entry-superseded' : 'milling-entry'}>
         <span className="milling-entry-station">{r.station} m</span>
         <span className="milling-entry-width">{r.width} m wide</span>
-        {r.isCorrection && <span className="milling-badge milling-badge-correction">corrected</span>}
-        {isSuperseded && <span className="milling-badge milling-badge-superseded">superseded</span>}
-        {r.isVoided && <span className="milling-badge milling-badge-voided">voided</span>}
-        {!isSuperseded && !r.isVoided && <span className="milling-badge milling-badge-synced">synced</span>}
-
-        <div className="milling-row-menu-wrap">
-          <button
-            type="button"
-            className="milling-row-menu-button"
-            aria-label="Reading actions"
-            disabled={preparingEntryId === r.id}
-            onClick={(e) => {
-              e.stopPropagation()
-              setOpenMenuId(openMenuId === r.id ? null : r.id)
-            }}
-          >
-            {preparingEntryId === r.id ? '…' : '⋮'}
-          </button>
-
-          {openMenuId === r.id && (
-            <div className="milling-row-menu" onClick={(e) => e.stopPropagation()}>
-              <button type="button" className="milling-row-menu-item" disabled={!canEdit} onClick={() => startCorrection(r.id)}>
-                Edit
-              </button>
-              <button
-                type="button"
-                className="milling-row-menu-item"
-                disabled={isSuperseded || r.isVoided}
-                onClick={() => {
-                  setOpenMenuId(null)
-                  setVoidingReading(r)
-                }}
-              >
-                Void
-              </button>
-              <button
-                type="button"
-                className="milling-row-menu-item"
-                onClick={() => {
-                  setOpenMenuId(null)
-                  setInsertingAfterReading(r)
-                }}
-              >
-                Insert reading after
-              </button>
-            </div>
+        <span className="milling-entry-status">
+          {r.isCorrection && <span className="milling-badge milling-badge-correction">corrected</span>}
+          {isSuperseded && <span className="milling-badge milling-badge-superseded">superseded</span>}
+          {r.isVoided && <span className="milling-badge milling-badge-voided">voided</span>}
+          {!isSuperseded && !r.isVoided && (
+            <span className="milling-sync-dot milling-sync-dot-synced" role="status" aria-label="Synced" title="Synced" />
           )}
-        </div>
+
+          <div className="milling-row-menu-wrap">
+            <button
+              type="button"
+              className="milling-row-menu-button"
+              aria-label="Reading actions"
+              disabled={preparingEntryId === r.id}
+              onClick={(e) => {
+                e.stopPropagation()
+                setOpenMenuId(openMenuId === r.id ? null : r.id)
+              }}
+            >
+              {preparingEntryId === r.id ? '…' : '⋮'}
+            </button>
+
+            {openMenuId === r.id && (
+              <div className="milling-row-menu" onClick={(e) => e.stopPropagation()}>
+                <button type="button" className="milling-row-menu-item" disabled={!canEdit} onClick={() => startCorrection(r.id)}>
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  className="milling-row-menu-item"
+                  disabled={isSuperseded || r.isVoided}
+                  onClick={() => {
+                    setOpenMenuId(null)
+                    setVoidingReading(r)
+                  }}
+                >
+                  Void
+                </button>
+                <button
+                  type="button"
+                  className="milling-row-menu-item"
+                  onClick={() => {
+                    setOpenMenuId(null)
+                    setInsertingAfterReading(r)
+                  }}
+                >
+                  Insert reading after
+                </button>
+              </div>
+            )}
+          </div>
+        </span>
       </li>
     )
   }

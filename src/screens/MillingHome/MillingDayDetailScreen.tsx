@@ -103,20 +103,24 @@ export function MillingDayDetailScreen() {
                     <li key={r.id} className={isSuperseded ? 'milling-entry-superseded' : 'milling-entry'}>
                       <span className="milling-entry-station">{r.station} m</span>
                       <span className="milling-entry-width">{r.width} m wide</span>
-                      {r.isCorrection && <span className="milling-badge milling-badge-correction">corrected</span>}
-                      {isSuperseded && <span className="milling-badge milling-badge-superseded">superseded</span>}
-                      {!isSuperseded && <span className="milling-badge milling-badge-synced">synced</span>}
-                      {canEdit && (
-                        <button
-                          type="button"
-                          className="milling-edit-button"
-                          aria-label="Edit entry"
-                          disabled={preparingEntryId === r.id}
-                          onClick={() => startCorrection(group.roadSegmentId, r.id)}
-                        >
-                          {preparingEntryId === r.id ? '…' : '✏️'}
-                        </button>
-                      )}
+                      <span className="milling-entry-status">
+                        {r.isCorrection && <span className="milling-badge milling-badge-correction">corrected</span>}
+                        {isSuperseded && <span className="milling-badge milling-badge-superseded">superseded</span>}
+                        {!isSuperseded && (
+                          <span className="milling-sync-dot milling-sync-dot-synced" role="status" aria-label="Synced" title="Synced" />
+                        )}
+                        {canEdit && (
+                          <button
+                            type="button"
+                            className="milling-edit-button"
+                            aria-label="Edit entry"
+                            disabled={preparingEntryId === r.id}
+                            onClick={() => startCorrection(group.roadSegmentId, r.id)}
+                          >
+                            {preparingEntryId === r.id ? '…' : '✏️'}
+                          </button>
+                        )}
+                      </span>
                     </li>
                   )
                 })}

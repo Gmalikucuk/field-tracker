@@ -727,24 +727,28 @@ export function MillingEntryScreen() {
                       >
                         <span className="milling-entry-station">{entry.station} m</span>
                         <span className="milling-entry-width">{entry.width} m wide</span>
-                        {entry.isCorrection && <span className="milling-badge milling-badge-correction">corrected</span>}
-                        {isSuperseded && <span className="milling-badge milling-badge-superseded">superseded</span>}
-                        {!isSuperseded && entry.status === 'synced' && (
-                          <span className="milling-badge milling-badge-synced">synced</span>
-                        )}
-                        {!isSuperseded && entry.status === 'queued' && (
-                          <span className="milling-badge milling-badge-queued">queued</span>
-                        )}
-                        {canEdit && (
-                          <button
-                            type="button"
-                            className="milling-edit-button"
-                            aria-label="Edit entry"
-                            onClick={() => setCorrectingEntry(entry)}
-                          >
-                            ✏️
-                          </button>
-                        )}
+                        <span className="milling-entry-status">
+                          {entry.isCorrection && <span className="milling-badge milling-badge-correction">corrected</span>}
+                          {isSuperseded && <span className="milling-badge milling-badge-superseded">superseded</span>}
+                          {!isSuperseded && (
+                            <span
+                              className={'milling-sync-dot' + (entry.status === 'synced' ? ' milling-sync-dot-synced' : ' milling-sync-dot-pending')}
+                              role="status"
+                              aria-label={entry.status === 'synced' ? 'Synced' : 'Queued, syncing'}
+                              title={entry.status === 'synced' ? 'Synced' : 'Queued, syncing'}
+                            />
+                          )}
+                          {canEdit && (
+                            <button
+                              type="button"
+                              className="milling-edit-button"
+                              aria-label="Edit entry"
+                              onClick={() => setCorrectingEntry(entry)}
+                            >
+                              ✏️
+                            </button>
+                          )}
+                        </span>
                       </li>
                     )
                   })}
