@@ -4,7 +4,7 @@ import { ExtraAreaForm } from '../../components/ExtraAreaForm'
 import { findStrictlyInsideCoverage, mergeIntervals, type Interval } from '../../lib/calculations/intervalCoverage'
 import { calculateSegments, cumulativeArea } from '../../lib/calculations/segmentArea'
 import { resolveSegmentForStation } from '../../lib/calculations/segmentResolution'
-import { todayLocalDateString } from '../../lib/dateFormat'
+import { daysAgo, formatDayLabel, todayLocalDateString } from '../../lib/dateFormat'
 import { db, type QueuedWidthReading } from '../../lib/db'
 import { getCurrentProjectId, setCurrentProject } from '../../lib/currentProject'
 import { getEntrySession, type EntrySessionDirection, type MillingResumePayload } from '../../lib/entrySession'
@@ -53,8 +53,6 @@ function computeNextStation(lastStation: number, direction: EntrySessionDirectio
     ? (Math.floor(lastStation / 50) + 1) * 50
     : (Math.ceil(lastStation / 50) - 1) * 50
 }
-
-const today = todayLocalDateString()
 
 export function MillingEntryScreen() {
   // crewMember comes from a REAL Supabase Auth session, if one exists (it
@@ -113,13 +111,26 @@ export function MillingEntryScreen() {
   const [setupDirection, setSetupDirection] = useState<EntrySessionDirection | null>(null)
   const [setupStartingStation, setSetupStartingStation] = useState('')
 
+  // The entry's real work date — what groups it into a day's totals and
+  // drives mill-to-pave deadline calculations — kept entirely separate
+  // from the server-side entry_timestamp (always the true moment of
+  // entry, set by the DB's own now() default; the client never sends a
+  // value for it, here or anywhere else, so nothing about this field can
+  // ever touch it). Defaults to today regardless of whether this setup is
+  // fresh or a "Continue from here" resume — resuming is about picking up
+  // a station/direction/project thread, not necessarily re-dating new
+  // readings to match whatever day the resumed session originally used;
+  // someone backfilling that same older day can still set this manually.
+  const [workDate, setWorkDate] = useState(() => todayLocalDateString())
+
   const projectDirectionChosen = selectedProjectId !== '' && selectedDirection !== ''
   const startingStationValue = Number(setupStartingStation)
   const ready =
     projectDirectionChosen &&
     setupDirection !== null &&
     setupStartingStation.trim() !== '' &&
-    Number.isFinite(startingStationValue)
+    Number.isFinite(startingStationValue) &&
+    workDate.trim() !== ''
 
   // Two-step flow: setup (Project + Direction + ascending/descending +
   // starting station) then entry. showEntry is true ONLY after the explicit
@@ -155,10 +166,10 @@ export function MillingEntryScreen() {
   const showEntry = entryStarted
 
   // [lo, hi] per prior day with active readings on the active segment —
-  // merged with today's live interval (from activeEntries, below) to check
-  // new stations against. Excludes today's own date since that comes from
-  // the live local queue instead, which reflects not-yet-synced entries
-  // this server fetch wouldn't have yet.
+  // merged with the work date's own live interval (from activeEntries,
+  // below) to check new stations against. Excludes the work date itself
+  // since that comes from the live local queue instead, which reflects
+  // not-yet-synced entries this server fetch wouldn't have yet.
   const [historicalIntervals, setHistoricalIntervals] = useState<Interval[]>([])
   const [coverageError, setCoverageError] = useState<string | null>(null)
 
@@ -252,30 +263,32 @@ export function MillingEntryScreen() {
     if (persisted.lastStation !== null) setSetupStartingStation(String(persisted.lastStation))
   }, [selectedProjectId, selectedDirection, pendingResume])
 
-  // Whenever the resolved active segment changes (including a mid-session
-  // crossing into a different segment) — reload its historical coverage.
+  // Whenever the resolved active segment OR the selected work date changes
+  // (including a mid-session crossing into a different segment, or editing
+  // the date back on the setup screen) — reload historical coverage for
+  // that (segment, date) combination.
   useEffect(() => {
     setHistoricalIntervals([])
     setCoverageError(null)
     if (!session.activeSegmentId) return
-    fetchStationCoverageIntervals(session.activeSegmentId, today)
+    fetchStationCoverageIntervals(session.activeSegmentId, workDate)
       .then(setHistoricalIntervals)
       .catch((err) => setCoverageError(extractErrorMessage(err, 'Failed to load station coverage.')))
-  }, [session.activeSegmentId])
+  }, [session.activeSegmentId, workDate])
 
-  // Pull today's server-confirmed rows into the local queue table once per
-  // active-segment change. After this, the running list reads entirely from
-  // Dexie (via useLiveQuery below) — server rows and locally-queued rows
-  // live in the same local table, so there's nothing to reconcile between
-  // "the fetched list" and "the queue".
+  // Pull the work date's server-confirmed rows into the local queue table.
+  // After this, the running list reads entirely from Dexie (via
+  // useLiveQuery below) — server rows and locally-queued rows live in the
+  // same local table, so there's nothing to reconcile between "the fetched
+  // list" and "the queue".
   useEffect(() => {
     if (!session.activeSegmentId) return
     setLoadingReadings(true)
     setLoadError(null)
-    importServerReadings(session.activeSegmentId, today)
+    importServerReadings(session.activeSegmentId, workDate)
       .catch((err) => setLoadError(extractErrorMessage(err, 'Failed to load entries.')))
       .finally(() => setLoadingReadings(false))
-  }, [session.activeSegmentId])
+  }, [session.activeSegmentId, workDate])
 
   const allEntries = useLiveQuery(
     () =>
@@ -283,10 +296,10 @@ export function MillingEntryScreen() {
         ? db.widthReadingsQueue
             .where('roadSegmentId')
             .equals(session.activeSegmentId)
-            .filter((r) => r.date === today)
+            .filter((r) => r.date === workDate)
             .toArray()
         : Promise.resolve([]),
-    [session.activeSegmentId],
+    [session.activeSegmentId, workDate],
     [] as QueuedWidthReading[],
   )
 
@@ -305,18 +318,22 @@ export function MillingEntryScreen() {
   // the correction row itself is what's authoritative.
   const activeEntries = useMemo(() => sortedEntries.filter((r) => r.supersededBy === null), [sortedEntries])
 
-  // Today's own coverage, computed live from the local queue rather than
-  // fetched — always reflects not-yet-synced entries, unlike
-  // historicalIntervals (a one-time server fetch per active-segment change).
-  const todayCoverageInterval = useMemo<Interval | null>(() => {
+  // The work date's own coverage, computed live from the local queue
+  // rather than fetched — always reflects not-yet-synced entries, unlike
+  // historicalIntervals (a one-time server fetch per active-segment/work-
+  // date change).
+  const workDateCoverageInterval = useMemo<Interval | null>(() => {
     if (activeEntries.length === 0) return null
     const stations = activeEntries.map((r) => r.station)
     return { lo: Math.min(...stations), hi: Math.max(...stations) }
   }, [activeEntries])
 
   const mergedCoverage = useMemo(
-    () => mergeIntervals(todayCoverageInterval ? [...historicalIntervals, todayCoverageInterval] : historicalIntervals),
-    [historicalIntervals, todayCoverageInterval],
+    () =>
+      mergeIntervals(
+        workDateCoverageInterval ? [...historicalIntervals, workDateCoverageInterval] : historicalIntervals,
+      ),
+    [historicalIntervals, workDateCoverageInterval],
   )
 
   const liveSegments = useMemo(() => {
@@ -366,12 +383,12 @@ export function MillingEntryScreen() {
     // Crossing into a different segment than the one currently loaded —
     // mergedCoverage still reflects the OLD segment, so fetch the new
     // segment's historical coverage fresh rather than checking against
-    // stale data. (Today's own interval for the new segment is empty
-    // either way: nothing's been queued locally against it yet.)
+    // stale data. (The work date's own interval for the new segment is
+    // empty either way: nothing's been queued locally against it yet.)
     let coverageForCheck = mergedCoverage
     if (resolved.id !== session.activeSegmentId) {
       try {
-        coverageForCheck = mergeIntervals(await fetchStationCoverageIntervals(resolved.id, today))
+        coverageForCheck = mergeIntervals(await fetchStationCoverageIntervals(resolved.id, workDate))
       } catch {
         coverageForCheck = []
       }
@@ -402,7 +419,7 @@ export function MillingEntryScreen() {
       await enqueueWidthReading({
         roadSegmentId: resolved.id,
         direction: selectedDirection,
-        date: today,
+        date: workDate,
         station: stationValue,
         width: widthValue,
       })
@@ -455,10 +472,14 @@ export function MillingEntryScreen() {
   // useEntrySession('paving', projectId, direction) instance, same pattern,
   // entirely independent key).
   //
-  // Also resets entryStarted/setupDirection/setupStartingStation so this
-  // returns to the setup screen with all four choices (Project, Direction,
-  // ascending/descending, starting station) to make again — setup is the
-  // only place any of these are declared now, there's no step-2 fallback.
+  // Also resets entryStarted/setupDirection/setupStartingStation/workDate
+  // so this returns to the setup screen with all five choices (Project,
+  // Direction, ascending/descending, starting station, date) to make
+  // again — setup is the only place any of these are declared now, there's
+  // no step-2 fallback. workDate resetting to today specifically matters:
+  // without it, backdating one session (to catch up on a missed day) would
+  // silently carry that same backdate into whatever unrelated session gets
+  // started next.
   function handleEndSession() {
     clearSession()
     setStationInput('')
@@ -467,6 +488,7 @@ export function MillingEntryScreen() {
     setEntryStarted(false)
     setSetupDirection(null)
     setSetupStartingStation('')
+    setWorkDate(todayLocalDateString())
   }
 
   // Returns to step 1 without touching the persisted session — Project and
@@ -569,6 +591,35 @@ export function MillingEntryScreen() {
             />
           </label>
 
+          <label className="milling-field">
+            <span>Date</span>
+            <input
+              type="date"
+              value={workDate}
+              max={todayLocalDateString()}
+              onChange={(e) => {
+                const value = e.target.value
+                if (!value) return
+                // max on a native date input only constrains the picker
+                // UI — not every browser blocks typing a future date
+                // straight into the text portion, so this is a real
+                // guard, not just belt-and-suspenders.
+                const clamped = value > todayLocalDateString() ? todayLocalDateString() : value
+                setWorkDate(clamped)
+              }}
+            />
+          </label>
+
+          {/* Same "may affect previously calculated totals" awareness
+              already used for corrections — a backdated entry lands in a
+              day's totals that may already have been reviewed. Yesterday
+              doesn't trigger it (entering yesterday's data first thing
+              this morning is routine, not a stale-totals concern);
+              anything older does. */}
+          {daysAgo(workDate) > 1 && (
+            <p className="milling-correction-past-day-warning">This may affect previously calculated totals.</p>
+          )}
+
           <div className="milling-begin-entry-row">
             <button
               type="button"
@@ -611,6 +662,11 @@ export function MillingEntryScreen() {
             </button>
             <span className="milling-topbar-project">
               {projects.find((p) => p.id === selectedProjectId)?.contractNumber} · {selectedDirection}
+              {/* Only surfaced when it's not today — the common case needs
+                  no reminder, but entering against a backdated work date
+                  with nothing on screen showing which date that is would
+                  be an easy way to lose track mid-session. */}
+              {workDate !== todayLocalDateString() && ` · ${formatDayLabel(workDate)}`}
             </span>
             <span
               className={'milling-sync-dot' + (queuedCount > 0 ? ' milling-sync-dot-pending' : ' milling-sync-dot-synced')}
@@ -715,7 +771,7 @@ export function MillingEntryScreen() {
               <section className="milling-list">
                 {loadingReadings && <p>Loading…</p>}
                 {loadError && <p className="milling-error">{loadError}</p>}
-                {!loadingReadings && sortedEntries.length === 0 && <p>No entries yet today.</p>}
+                {!loadingReadings && sortedEntries.length === 0 && <p>No entries yet for this date.</p>}
                 <ul>
                   {sortedEntries.map((entry) => {
                     const isSuperseded = entry.supersededBy !== null
@@ -758,7 +814,7 @@ export function MillingEntryScreen() {
               {activeSegment && (
                 <ExtraAreaForm
                   roadSegmentId={activeSegment.id}
-                  date={today}
+                  date={workDate}
                   hasIdentity={hasIdentity}
                   segmentFromStation={activeSegment.fromStation}
                   segmentToStation={activeSegment.toStation}

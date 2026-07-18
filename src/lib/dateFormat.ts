@@ -12,3 +12,12 @@ export function formatDayLabel(dateStr: string): string {
   const date = new Date(year, month - 1, day)
   return date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })
 }
+
+/** Whole days between `dateStr` and today (positive when dateStr is in the past) — parsed as local dates, not UTC, same timezone-safe approach as formatDayLabel. Rounded rather than floored/truncated so a DST transition day can't quietly shift the count by an hour's worth of a day. */
+export function daysAgo(dateStr: string): number {
+  const [year, month, day] = dateStr.split('-').map(Number)
+  const date = new Date(year, month - 1, day)
+  const now = new Date()
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  return Math.round((startOfToday.getTime() - date.getTime()) / (1000 * 60 * 60 * 24))
+}
